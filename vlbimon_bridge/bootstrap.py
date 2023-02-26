@@ -109,7 +109,7 @@ def bootstrap(cmd):
 
                 with open(fout, 'a') as fd:
                     for t, v in points:
-                        print('{},{}'.format(t, v), file=fd)
+                        print('{},{}'.format(t, v.strip()), file=fd)
 
                 utils.write_metadata(metadata, station=station, verbose=verbose)
 
