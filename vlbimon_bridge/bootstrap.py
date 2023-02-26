@@ -55,16 +55,18 @@ def bootstrap(cmd):
             if cadence is None:
                 continue
 
+            if verbose:
+                print(fout+':')
+
             cadence *= 10
             orig_cadence = cadence
+
             # note that this loop ignores last_tried and last_seen
             tee = cmd.start
             while tee < cmd.end:
                 ts = tee
                 tee += cadence
                 te = min(cmd.end, ts + cadence)
-                if verbose:
-                    print(fout+':')
                 resp_json = client.get_history(server, param, station, ts, te, auth=auth)
 
                 # None = error, nothing learned
