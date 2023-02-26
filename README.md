@@ -61,6 +61,7 @@ vibimon_bridge -v --all --start 1647543720 --end 1647611100 > STDOUT 2> STDERR
 It should take about 24 hours to run, because it's single threaded and sleeps for
 1 second between fetches.
 
-# Uploading ...
+# Uploading
 
-Work in progress.
+See https://github.com/wumpus/eht-monitor-demo
+
