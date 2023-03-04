@@ -26,6 +26,7 @@ def select_cadence(cmd, value):
 
 def bootstrap(cmd):
     verbose = cmd.verbose
+    datadir = cmd.datadir.rstrip('/')
 
     if cmd.one:
         server = 'https://vlbimon1.science.ru.nl/'
@@ -36,7 +37,7 @@ def bootstrap(cmd):
 
     stations, parameters = utils.read_masterlist()
     utils.comment_on_masterlist(stations, parameters, verbose=verbose)
-    metadata = utils.read_metadata(stations)
+    metadata = utils.read_metadata(stations, metadir=datadir)
 
     stations = cmd.stations or stations
 
@@ -46,8 +47,8 @@ def bootstrap(cmd):
         for param, value in parameters.items():
             if cmd.param and param not in cmd.param:
                 continue
-            metadata = utils.read_metadata(stations, station=station, verbose=verbose)
-            dirname = 'data/' + station
+            metadata = utils.read_metadata(stations, station=station, metadir=datadir, verbose=verbose)
+            dirname = datadir + '/' + station
             os.makedirs(dirname, exist_ok=True)
             fout = dirname + '/' + param + '.csv'
 
@@ -58,7 +59,7 @@ def bootstrap(cmd):
             if verbose:
                 print(fout+':')
 
-            cadence *= 10
+            cadence *= 100
             orig_cadence = cadence
 
             # note that this loop ignores last_tried and last_seen
@@ -111,8 +112,10 @@ def bootstrap(cmd):
 
                 with open(fout, 'a') as fd:
                     for t, v in points:
-                        print('{},{}'.format(t, v.strip()), file=fd)
+                        if isinstance(v, str):
+                            v = v.strip()
+                        print('{},{}'.format(t, v), file=fd)
 
-                utils.write_metadata(metadata, station=station, verbose=verbose)
+                utils.write_metadata(metadata, station=station, metadir=datadir, verbose=verbose)
 
                 time.sleep(1)

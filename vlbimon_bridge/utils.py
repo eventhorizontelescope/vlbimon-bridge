@@ -13,7 +13,7 @@ def read_metadata(stations, metadir='data', station=None, verbose=0):
         if not os.path.exists(fname):
             metadata[s] = {}
             continue
-        if verbose:
+        if verbose > 1:
             print('reading', fname)
         with open(fname) as fd:
             metadata[s] = json.load(fd)
@@ -27,7 +27,7 @@ def write_metadata(metadata, metadir='data', station=None, verbose=0):
         dirname = metadir + '/' + s
         os.makedirs(dirname, exist_ok=True)
         fname = dirname + '/metadata.json'
-        if verbose:
+        if verbose > 1:
             print('writing', fname)
         with open(fname, 'w') as fd:
             json.dump(meta, fd, sort_keys=True, indent=4)
