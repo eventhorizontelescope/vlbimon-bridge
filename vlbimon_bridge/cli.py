@@ -14,6 +14,6 @@ def main(args=None):
     parser.add_argument('--end', action='store', type=int, help='end time (unixtime integer)')
     parser.add_argument('--param', action='append', help='param to process (default all)')
     parser.add_argument('--stations', action='append', help='stations to process (default all)')
-    parser.add_argument('--datadir, action='store', default='data', help='directory to write output in')
+    parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
     cmd = parser.parse_args(args=args)
     return bootstrap.bootstrap(cmd)
