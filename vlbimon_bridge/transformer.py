@@ -11,7 +11,7 @@ def init(verbose=0):
     stations, parameters = utils.read_masterlist()
 
     for p, v in parameters.items():
-        if 'datatype' in v and v['datatype'] == 'CelestialCoordinates':
+        if 'datatype' in v and v['datatype'] in {'CelestialCoordinates', 'AzElCoordinates'}:
             splitters.append(p)
         if p.startswith('telescope_') and 'datatype' in v and v['datatype'] == 'string':
             telescope_events.append(p)
