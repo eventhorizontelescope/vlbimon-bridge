@@ -17,6 +17,9 @@ extras_require = {
     'test': test_requires,  # setup no longer tests, so make them an extra that CI uses
 }
 
+scripts = []
+# 'create_tables.py', 'generate_types.py', 'insert_station.py', 'session-example.py', 'summarize_sqlite_db.py'
+
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     description = f.read()
@@ -40,6 +43,7 @@ setup(
         [console_scripts]
         vlbimon_bridge = vlbimon_bridge.cli:main
     ''',
+    scripts=scripts,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

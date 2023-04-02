@@ -33,21 +33,39 @@ vlbimon2.science.ru.nl:
 
 ```
 $ vlbimon_bridge -h
-usage: vlbimon_bridge [-h] [--verbose] [-1] [--public] [--private] [--all] [--start START] [--end END] [--param PARAM] [--stations STATIONS]
+usage: vlbimon_bridge [-h] [--verbose] [-1] [--start START] [--datadir DATADIR] {history,live} ...
 
 vlbimon_bridge command line utilities
 
+positional arguments:
+  {history,live}
+    history
+    live
+
+options:
+  -h, --help         show this help message and exit
+  --verbose, -v      be verbose
+  -1                 use vlbimon1 (default is vlbimon2)
+  --start START      start time (unixtime integer)
+  --datadir DATADIR  directory to write output in
+
+$ vlbimon_bridge history -h
+usage: vlbimon_bridge history [-h] [--public] [--private] [--all] [--end END] [--param PARAM] [--stations STATIONS]
+
 options:
   -h, --help           show this help message and exit
-  --verbose, -v        be verbose
-  -1                   use vlbimon1 (default is vlbimon2)
   --public             process public parameters (year round)
   --private            process private parameters (during EHT obs)
   --all                process all parameters
-  --start START        start time (unixtime integer)
   --end END            end time (unixtime integer)
   --param PARAM        param to process (default all)
   --stations STATIONS  stations to process (default all)
+
+$ vlbimon_bridge live -h
+usage: vlbimon_bridge live [-h]
+
+options:
+  -h, --help  show this help message and exit
 ```
 
 # Downloading VLBIMON data

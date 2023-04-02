@@ -1,8 +1,6 @@
 import yaml
 import requests
 import os.path
-import time
-import sys
 
 '''
 example ~/.vlbimonitor-secrets.yaml:
@@ -30,6 +28,8 @@ def get_auth(server='vlbimon1.science.ru.nl',
 
 def get_history(server, datafields, observatories, start_timestamp, end_timestamp, auth=None):
     query = '/data/history'
+    if not server.startswith('https://'):
+        server = 'https://' + server
     params = {
         'observatory': observatories,
         'field': datafields,
@@ -55,3 +55,63 @@ def get_history(server, datafields, observatories, start_timestamp, end_timestam
         return None
 
     return j
+
+
+def create_session(server, auth):
+    if not server.startswith('https://'):
+        server = 'https://' + server
+    r = requests.post(server + '/session', auth=auth)
+    j = r.json()
+    if not r.ok:
+        print()
+    r.raise_for_status()
+    return j['id']
+
+
+def restore_session(server, sessionid, auth):
+    if sessionid is None:
+        raise FileNotFoundError('no sessionid')
+    if not server.startswith('https://'):
+        server = 'https://' + server
+    r = requests.patch(server + '/session/' + sessionid, auth=auth)
+    if r.status_code == 404:
+        raise FileNotFoundError('sessionid has expired')
+    if not r.ok:
+        print()
+    r.raise_for_status()
+    return sessionid
+
+
+def get_sessionid(server, sessionid=None, auth=None):
+    try:
+        return restore_session(server, sessionid, auth)
+    except FileNotFoundError:
+        return create_session(server, auth)
+
+
+def get_snapshot(server, last_snap=None, sessionid=None, auth=None):
+    query = '/data/snapshot'
+    if not server.startswith('https://'):
+        server = 'https://' + server
+
+    if last_snap is not None:
+        cookies = {'snap_recvTime': str(last_snap)}
+    else:
+        cookies = {}
+    cookies['sessionid'] = sessionid
+
+    r = requests.get(server + query, cookies=cookies)
+    if r.status_code in (401, 403):
+        # example: requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://vlbimon2.science.ru.nl/data/snapshot
+        print('fetching a new session id after getting a', r.status_code)
+        sessionid = get_sessionid(server, auth=auth)
+        # do not update last_snap, the next get_snapshot call will not have a gap
+        return sessionid, last_snap, {}
+    if r.status_code in (429, 503):
+        # slow down and service unavailable
+        print('slow down', r.status_code, 'sleeping for 10sec')
+        return sessionid, last_snap, {}
+
+    snapshot = r.json()
+    last_snap = r.cookies.get('snap_recvTime')
+    return sessionid, last_snap, snapshot

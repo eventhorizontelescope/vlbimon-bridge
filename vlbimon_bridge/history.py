@@ -24,7 +24,7 @@ def select_cadence(cmd, value):
     return int(cadence)
 
 
-def bootstrap(cmd):
+def history(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
 
