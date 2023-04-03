@@ -1,5 +1,7 @@
 import os.path
 import json
+import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -91,3 +93,43 @@ def comment_on_masterlist(stations, parameters, verbose=0):
     print('len params', len(parameters))
     print(' ', 'len params public', len([x for x in parameters.items() if 'cadence' in x[1] and 'public' in x[1]['cadence']]))
     print(' ', 'len params private', len([x for x in parameters.items() if 'cadence' in x[1] and 'private' in x[1]['cadence']]))
+
+
+def flatten(snap, add_points=False, to_int=True, verbose=0):
+    ret = []
+    for s, v in snap.items():
+        if s == 'vexfiles':
+            continue
+        if 'clients' in v:
+            for c, v2 in v['clients'].items():
+                # these client things need a param that is a valid identifier
+                c = c.replace(' ', '_').replace('.', '_')
+                line = [s, c, v2['recvTime'], v2.get('version', 'no_version')]
+                ret.append(line)
+        if 'data' in v:
+            for d, v2 in v['data'].items():
+                recvTime = v2[0]
+                if to_int:
+                    recvTime = int(recvTime)
+                value = v2[1]
+                line = [s, d, recvTime, value]
+                ret.append(line)
+    if add_points:
+        points = len(ret)
+        latest_point = int(time.time()) if len(ret) == 0 else max([r[2] for r in ret])
+        lag = int(time.time() - latest_point)
+        ret.append(['bridge', 'points', int(time.time()), points])
+        ret.append(['bridge', 'lag', int(time.time()), lag])
+
+    if verbose:
+        [print(r) for r in ret]
+    return ret
+
+
+def flat_to_tables(flat):
+    # flat record: station, param, time, value
+    # sql tables are named param and the rows are time, station, value
+    tables = defaultdict(list)
+    for f in flat:
+        station, param, recv_time, value = f
+        tables[param].append(recv_time, station, value)

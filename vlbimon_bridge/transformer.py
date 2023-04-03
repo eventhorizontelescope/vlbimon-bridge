@@ -4,6 +4,7 @@ import re
 from . import utils
 
 splitters = []
+splitters_expanded = []
 telescope_events = []
 
 
@@ -19,9 +20,20 @@ def init(verbose=0):
             telescope_events.append(p)
     telescope_events.append('telescope_onSource')  # a bool
 
+    for s in splitters:
+        splitters_expanded.extend(expand_ra_dec(s))
+
     if verbose:
         print('splitters:', *splitters, file=sys.stderr)
         print('events:', *telescope_events, file=sys.stderr)
+
+
+def expand_ra_dec(param):
+    if param == 'telescope_azimuthElevation':
+        suffix = ('_az', '_alt')
+    else:
+        suffix = ('_ra', '_dec')
+    return (param + suffix[0], param + suffix[1])
 
 
 def transform(flat, verbose=0):
@@ -71,12 +83,9 @@ def transform_split_coords(flat, verbose=0):
                 print('failed to split', station, param, value, file=sys.stderr)
                 continue
             ra, dec = m.groups()
-            if param == 'telescope_azimuthElevation':
-                suffix = ('_az', '_alt')
-            else:
-                suffix = ('_ra', '_dec')
-            extras.append([station, param+suffix[0], recv_time, ra])
-            extras.append([station, param+suffix[1], recv_time, dec])
+            expanded = expand_ra_dec(param)
+            extras.append([station, expanded[0], recv_time, ra])
+            extras.append([station, expanded[1], recv_time, dec])
     if verbose:
         print('splits', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
