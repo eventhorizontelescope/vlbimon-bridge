@@ -103,9 +103,12 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
         if 'clients' in v:
             for c, v2 in v['clients'].items():
                 # these client things need a param that is a valid identifier
-                c = c.replace(' ', '_').replace('.', '_')
-                line = [s, c, v2['recvTime'], v2.get('version', 'no_version')]
-                ret.append(line)
+                # except they're boring -- just a version number -- no version for 127.0.0.1
+                # so skip them all
+                #c = c.replace(' ', '_').replace('.', '_')
+                #line = [s, c, v2['recvTime'], v2.get('version', 'no_version')]
+                #ret.append(line)
+                pass
         if 'data' in v:
             for d, v2 in v['data'].items():
                 recvTime = v2[0]
