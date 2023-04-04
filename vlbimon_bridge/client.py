@@ -112,6 +112,12 @@ def get_snapshot(server, last_snap=None, sessionid=None, auth=None):
         print('slow down', r.status_code, 'sleeping for 10sec')
         return sessionid, last_snap, {}
 
-    snapshot = r.json()
+    try:
+        snapshot = r.json()
+    except Exception as e:
+        print('whoops! failed json decode of', repr(e))
+        print('  text is', r.text)
+        return sessionid, last_snap, {}
+
     last_snap = r.cookies.get('snap_recvTime')
     return sessionid, last_snap, snapshot
