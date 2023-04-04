@@ -35,16 +35,6 @@ def initdb(cmd):
     for param in transformer.splitters_expanded:
         if param not in vlbi_types:
             vlbi_types[param] = 'REAL'
-            '''
-skipping OperationalError('no such table: ts_param_telescope_azimuthElevation_az')
-skipping OperationalError('no such table: ts_param_telescope_azimuthElevation_alt')
-skipping OperationalError('no such table: ts_param_if_1_systemTempAzel_ra')
-skipping OperationalError('no such table: ts_param_if_1_systemTempAzel_dec')
-skipping OperationalError('no such table: ts_param_telescope_apparentRaDec_ra')
-skipping OperationalError('no such table: ts_param_telescope_apparentRaDec_dec')
-skipping OperationalError('no such table: ts_param_telescope_epochRaDec_ra')
-skipping OperationalError('no such table: ts_param_telescope_epochRaDec_dec')
-            '''
 
     for param, vlbi_type in vlbi_types.items():
         param = param.split('.')[0]
