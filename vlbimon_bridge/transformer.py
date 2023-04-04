@@ -1,5 +1,6 @@
 import sys
 import re
+from collections import defaultdict
 
 from . import utils
 
@@ -36,8 +37,8 @@ def expand_ra_dec(param):
     return (param + suffix[0], param + suffix[1])
 
 
-def transform(flat, verbose=0):
-    flat = transform_events(flat, verbose=verbose)
+def transform(flat, verbose=0, dedup_events=False):
+    flat = transform_events(flat, verbose=verbose, dedup_events=dedup_events)
     flat = transform_split_coords(flat, verbose=verbose)
     return flat
 
@@ -53,7 +54,10 @@ event_map = {
 }
 
 
-def transform_events(flat, verbose=0):
+station_latest_event = defaultdict(dict)
+
+
+def transform_events(flat, verbose=0, dedup_events=False):
     extras = []
     for f in flat:
         station, param, recv_time, value = f
@@ -65,12 +69,17 @@ def transform_events(flat, verbose=0):
                     event = 'is off source'
             elif param in event_map:
                 event = event_map[param] + ' ' + value
+            if dedup_events and station_latest_event[station].get(param) == value:
+                if verbose:
+                    print('deduping event', station, param, value)
+                continue
+            station_latest_event[station][param] = value
             extras.append([station, 'events', recv_time, event])
-    if verbose:
+    if verbose > 1:
         print('events', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
     return flat + extras
-        
+
 
 def transform_split_coords(flat, verbose=0):
     extras = []
@@ -86,7 +95,7 @@ def transform_split_coords(flat, verbose=0):
             expanded = expand_ra_dec(param)
             extras.append([station, expanded[0], recv_time, ra])
             extras.append([station, expanded[1], recv_time, dec])
-    if verbose:
+    if verbose > 1:
         print('splits', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
     return flat + extras

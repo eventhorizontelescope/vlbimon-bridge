@@ -132,4 +132,5 @@ def flat_to_tables(flat):
     tables = defaultdict(list)
     for f in flat:
         station, param, recv_time, value = f
-        tables[param].append(recv_time, station, value)
+        tables[param].append((recv_time, station, value),)
+    return tables

@@ -3,6 +3,8 @@ import time
 import os
 import os.path
 import json
+import sys
+import sqlite3
 
 from . import history
 from . import client
@@ -32,22 +34,26 @@ def main(args=None):
     hist.set_defaults(func=history.history)
 
     initdb = subparsers.add_parser('initdb', help='initialize a sqlite database')
-    initdb.add_argument('--wal', action='store', type=int, default=10000, help='size of the write ahead log, default 10000 4k pages')
+    initdb.add_argument('--wal', action='store', type=int, default=10000, help='size of the write ahead log, default 10000 4k pages. 0 to disable.')
     initdb.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
     initdb.set_defaults(func=sqlite.initdb)
 
-    snap = subparsers.add_parser('snapshot', help='bridge data from vlbimon into a sqlite database')
-    snap.add_argument('--dt', action='store', type=int, default=10, help='time between calls, seconds, default=10')
-    snap.add_argument('--sqlitedb', action='store', help='name of the output database; elsewise, print to stdout')
-    snap.set_defaults(func=snapshot_cli)
+    bridge = subparsers.add_parser('bridge', help='bridge data from vlbimon into a sqlite database')
+    bridge.add_argument('--dt', action='store', type=int, default=10, help='time between calls, seconds, default=10')
+    bridge.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
+    bridge.set_defaults(func=bridge_cli)
 
     cmd = parser.parse_args(args=args)
     cmd.func(cmd)
 
 
-def snapshot_cli(cmd):
+def bridge_cli(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
+
+    if not os.path.isfile(cmd.sqlitedb):
+        # error out early if the db doesn't exist
+        raise ValueError('database file {} does not exist'.format(cmd.sqlitedb))
 
     transformer.init(verbose=verbose)
     if cmd.one:
@@ -66,7 +72,7 @@ def snapshot_cli(cmd):
                 sessionid = j['sessionid']
                 last_snap = j['last_snap']
             except json.JSONDecodeError as e:
-                print('surprised while reading {} by {}, ignoring metadata'.format(metadata_file, repr(e)))
+                print('surprised while reading {} by {}, ignoring metadata'.format(metadata_file, repr(e)), file=sys.stderr)
     if sessionid is None:
         sessionid = client.get_sessionid(server, auth=auth)
         last_snap = int(time.time())
@@ -78,15 +84,34 @@ def snapshot_cli(cmd):
 
     while True:
         if next_deadline:
-            time.sleep(next_deadline - time.time())
+            gap = next_deadline - time.time()
+            if gap > 0:
+                time.sleep(gap)
         next_deadline = time.time() + cmd.dt
 
         sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
         flat = utils.flatten(snap, add_points=True, verbose=verbose)
-        flat = transformer.transform(flat, verbose=verbose)
+        flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
+        tables = utils.flat_to_tables(flat)
+
+        con = sqlite3.connect(cmd.sqlitedb)
+        cur = con.cursor()
+
+        if verbose:
+            print('inserting', len(tables), 'items', file=sys.stderr)
+        for param, data in tables.items():
+            try:
+                cur.executemany('INSERT INTO ts_param_{} VALUES(?, ?, ?)'.format(param), data)
+            except sqlite3.OperationalError as e:
+                # sqlite3.OperationalError: no such table: ts_param_127_0_0_1
+                if verbose:
+                    print('skipping', repr(e), file=sys.stderr)
+                pass
+
+        con.commit()
+        con.close()
 
         with open(metadata_file, 'w') as f:
+            # do this after successful database writes
+            # XXX maybe new + os.replace()
             json.dump({'sessionid': sessionid, 'last_snap': last_snap}, f, sort_keys=True)
-
-        print('I got:')
-        [print(f) for f in flat]
