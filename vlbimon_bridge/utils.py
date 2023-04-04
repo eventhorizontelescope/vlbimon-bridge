@@ -123,7 +123,7 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
         for r in ret:
             station_points[r[0]] += 1
         for s, value in station_points.items():
-            if value > 1:
+            if value > 0:
                 ret.append([s, 'points', int(time.time()), value])
         ret.append(['bridge', 'points', now, points])  # do this last so these are not counted for station 'bridge'
         ret.append(['bridge', 'lag', now, lag])
