@@ -1,8 +1,8 @@
-download-masterlist: masterlist.json
+download-masterlist:
 	wget https://vlbimon1.science.ru.nl/static/masterlist.json
 
-make-types: download-masterlist vlbimon_bridge/vlbimon_types.csv
-	python generate_types.py  > vlbimon_types.csv
+make-types:
+	python scripts/generate_types.py  > vlbimon_types.csv
 
 vlbimon.db:
 	python create_tables.py
