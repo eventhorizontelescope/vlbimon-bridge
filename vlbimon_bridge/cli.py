@@ -16,7 +16,7 @@ from . import sqlite
 def main(args=None):
     parser = ArgumentParser(description='vlbimon_bridge command line utilities')
 
-    parser.add_argument('--verbose', '-v', action='count', help='be verbose')
+    parser.add_argument('--verbose', '-v', action='count', default=0, help='be verbose')
     parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
     parser.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
     parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
