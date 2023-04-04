@@ -120,8 +120,14 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
         lag = int(time.time() - latest_point)
         ret.append(['bridge', 'points', int(time.time()), points])
         ret.append(['bridge', 'lag', int(time.time()), lag])
+        station_points = defaultdict(int)
+        for r in ret:
+            station_points[r[0]] += 1
+        for s, value in station_points.items():
+            if value > 1:
+                ret.append([s, 'points', int(time.time()), value])
 
-    if verbose:
+    if verbose > 1:
         [print(r) for r in ret]
     return ret
 
