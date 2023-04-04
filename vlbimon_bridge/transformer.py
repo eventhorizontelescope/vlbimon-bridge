@@ -77,9 +77,10 @@ def transform_events(flat, verbose=0, dedup_events=False):
                 event = event_map[param] + ' ' + value
             else:
                 # default formatting. we might want to suppress things like telescope_epochType
-                event = 'is ' + value
+                p = param.replace('telescope_', '')
+                event = p + ' is ' + value
 
-            extras.append([station, 'events', recv_time, event])
+            extras.append([station, 'events', recv_time, station + ' ' + event])
     if verbose > 1:
         print('events', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
