@@ -62,6 +62,12 @@ def transform_events(flat, verbose=0, dedup_events=False):
     for f in flat:
         station, param, recv_time, value = f
         if param in telescope_events:
+            if dedup_events and station_latest_event[station].get(param) == value:
+                if verbose:
+                    print('deduping event', station, param, value)
+                continue
+            station_latest_event[station][param] = value
+
             if param == 'telescope_onSource':
                 if value == 'true':
                     event = 'is on source'
@@ -69,11 +75,10 @@ def transform_events(flat, verbose=0, dedup_events=False):
                     event = 'is off source'
             elif param in event_map:
                 event = event_map[param] + ' ' + value
-            if dedup_events and station_latest_event[station].get(param) == value:
-                if verbose:
-                    print('deduping event', station, param, value)
-                continue
-            station_latest_event[station][param] = value
+            else:
+                # default formatting. we might want to suppress things like telescope_epochType
+                event = 'is ' + value
+
             extras.append([station, 'events', recv_time, event])
     if verbose > 1:
         print('events', file=sys.stderr)
