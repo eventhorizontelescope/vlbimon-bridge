@@ -105,7 +105,7 @@ def bridge_cli(cmd):
             except sqlite3.OperationalError as e:
                 # sqlite3.OperationalError: no such table: ts_param_127_0_0_1
                 if verbose:
-                    print('skipping', repr(e), file=sys.stderr)
+                    print('skipping', repr(e), data, file=sys.stderr)
                 pass
 
         con.commit()
