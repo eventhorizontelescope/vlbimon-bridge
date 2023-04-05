@@ -1,6 +1,9 @@
 import yaml
 import requests
 import os.path
+import json
+import time
+import sys
 
 '''
 example ~/.vlbimonitor-secrets.yaml:
@@ -60,11 +63,24 @@ def get_history(server, datafields, observatories, start_timestamp, end_timestam
 def create_session(server, auth):
     if not server.startswith('https://'):
         server = 'https://' + server
-    r = requests.post(server + '/session', auth=auth)
-    j = r.json()
-    if not r.ok:
-        print()
-    r.raise_for_status()
+    while True:
+        try:
+            r = requests.post(server + '/session', auth=auth)
+            r.raise_for_status()
+        except Exception as e:
+            print('saw exception', repr(e), 'looping')
+            time.sleep(10)
+            continue
+        try:
+            j = r.json()
+        except json.JSONDecodeError as e:
+            print('saw exception', repr(e), 'looping')
+            time.sleep(10)
+            continue
+        if 'id' in j:
+            break
+        print('did not see a session id in the return, even though no exceptions were thrown. looping.')
+        time.sleep(10)
     return j['id']
 
 
@@ -77,7 +93,7 @@ def restore_session(server, sessionid, auth):
     if r.status_code == 404:
         raise FileNotFoundError('sessionid has expired')
     if not r.ok:
-        print()
+        print('restore_session saw status', r.status_code)
     r.raise_for_status()
     return sessionid
 
@@ -86,6 +102,9 @@ def get_sessionid(server, sessionid=None, auth=None):
     try:
         return restore_session(server, sessionid, auth)
     except FileNotFoundError:
+        return create_session(server, auth)
+    except Exception as e:
+        print('restore_session got', repr(e), ', creating a new session')
         return create_session(server, auth)
 
 
@@ -100,21 +119,28 @@ def get_snapshot(server, last_snap=None, sessionid=None, auth=None):
         cookies = {}
     cookies['sessionid'] = sessionid
 
-    r = requests.get(server + query, cookies=cookies)
+    try:
+        r = requests.get(server + query, cookies=cookies)
+    except Exception as e:
+        print('something bad happened ({}). sleeping for 10s.'.format(repr(e)))
+        return sessionid, last_snap, {}
+
     if r.status_code in (401, 403):
         # example: requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://vlbimon2.science.ru.nl/data/snapshot
         print('fetching a new session id after getting a', r.status_code)
         sessionid = get_sessionid(server, auth=auth)
-        # do not update last_snap, the next get_snapshot call will not have a gap
         return sessionid, last_snap, {}
     if r.status_code in (429, 503):
         # slow down and service unavailable
         print('slow down', r.status_code, 'sleeping for 10sec')
         return sessionid, last_snap, {}
+    if not r.ok:
+        print('saw status_code', r.status_code, 'sleeping for 10sec')
+        return sessionid, last_snap, {}
 
     try:
         snapshot = r.json()
-    except Exception as e:
+    except json.JSONDecodeError as e:
         print('whoops! failed json decode of', repr(e))
         print('  text is', r.text)
         return sessionid, last_snap, {}
