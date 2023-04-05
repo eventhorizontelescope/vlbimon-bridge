@@ -50,7 +50,7 @@ def initdb(cmd):
     bridge_tables = (
         ('events', 'TEXT'),
         ('points', 'INTEGER'),
-        ('lag', 'INTEGER'),
+        ('lag', 'REAL'),
     )
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
