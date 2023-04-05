@@ -27,13 +27,14 @@ def select_cadence(cmd, value):
 def history(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
+    secrets = cmd.secrets
 
     if cmd.one:
         server = 'https://vlbimon1.science.ru.nl/'
-        auth = client.get_auth()
+        auth = client.get_auth(secrets=secrets)
     else:
         server = 'https://vlbimon2.science.ru.nl/'
-        auth = client.get_auth('vlbimon2.science.ru.nl')
+        auth = client.get_auth('vlbimon2.science.ru.nl', secrets=secrets)
 
     stations, parameters = utils.read_masterlist()
     utils.comment_on_masterlist(stations, parameters, verbose=verbose)

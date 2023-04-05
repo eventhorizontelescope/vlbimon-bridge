@@ -20,6 +20,7 @@ def main(args=None):
     parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
     parser.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
     parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
+    parser.add_argument('--secrets', action='store', default='~/.vlbimon-secrets.yaml', help='file containing auth secrets, default ~/.vlbimon-secrets.yaml')
 
     subparsers = parser.add_subparsers(dest='cmd')
     subparsers.required = True
@@ -50,6 +51,7 @@ def main(args=None):
 def bridge_cli(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
+    secrets = cmd.secrets
 
     if not os.path.isfile(cmd.sqlitedb):
         # error out early if the db doesn't exist
@@ -60,7 +62,7 @@ def bridge_cli(cmd):
         server = 'vlbimon1.science.ru.nl'
     else:
         server = 'vlbimon2.science.ru.nl'
-    auth = client.get_auth(server)
+    auth = client.get_auth(server, secrets=secrets)
 
     os.makedirs(datadir, exist_ok=True)
     metadata_file = datadir + '/' + server + '.json'

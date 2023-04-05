@@ -12,9 +12,9 @@ vlbimon1.science.ru.nl:
 
 
 def get_auth(server='vlbimon1.science.ru.nl',
-             secrets_file='~/.vlbimonitor-secrets.yaml'):
-    secrets_file = os.path.expandvars(os.path.expanduser(secrets_file))
-    with open(secrets_file) as f:
+             secrets='~/.vlbimonitor-secrets.yaml'):
+    secrets = os.path.expandvars(os.path.expanduser(secrets))
+    with open(secrets) as f:
         conf = yaml.safe_load(f)
     # expect a dict of hostnames
     conf = conf.get(server, {})
@@ -23,7 +23,7 @@ def get_auth(server='vlbimon1.science.ru.nl',
     if 'digestauth' in conf:
         from requests.auth import HTTPDigestAuth
         return HTTPDigestAuth(*conf['digestauth'])  # also ('username', 'password')
-    raise ValueError('failed to find auth information in {} for server {}, please check the format'.format(secrets_file, server))
+    raise ValueError('failed to find auth information in {} for server {}, please check the format'.format(secrets, server))
 
 
 def get_history(server, datafields, observatories, start_timestamp, end_timestamp, auth=None):
