@@ -69,7 +69,10 @@ def transform_events(flat, verbose=0, dedup_events=False):
             station_latest_event[station][param] = value
 
             if param == 'telescope_onSource':
-                if value == 'true':
+                # this can be a string or a bool
+                if isinstance(value, str) and value in {'true', 'True'}:  # I have only seen 'true'
+                    event = 'is on source'
+                elif isinstance(value, bool) and value:  # KP, SMTO
                     event = 'is on source'
                 else:
                     event = 'is off source'
