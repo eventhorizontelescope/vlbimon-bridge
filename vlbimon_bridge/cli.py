@@ -20,7 +20,7 @@ def main(args=None):
     parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
     parser.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
     parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
-    parser.add_argument('--secrets', action='store', default='~/.vlbimon-secrets.yaml', help='file containing auth secrets, default ~/.vlbimon-secrets.yaml')
+    parser.add_argument('--secrets', action='store', default='~/.vlbimonitor-secrets.yaml', help='file containing auth secrets, default ~/.vlbimonitor-secrets.yaml')
 
     subparsers = parser.add_subparsers(dest='cmd')
     subparsers.required = True
