@@ -120,7 +120,7 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
     if add_points:
         points = len(ret)
         latest_point = int(time.time()) if len(ret) == 0 else max([r[2] for r in ret])
-        lag = int(time.time() - latest_point)
+        lag = time.time() - latest_point  # float
         now = int(time.time())
         station_points = defaultdict(int)
         for r in ret:
