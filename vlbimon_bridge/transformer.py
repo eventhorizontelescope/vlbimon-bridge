@@ -68,6 +68,11 @@ def transform_events(flat, verbose=0, dedup_events=False):
                 continue
             station_latest_event[station][param] = value
 
+            if param == 'telescope_observingMode' and station == 'SMA':
+                # SMA sends an empty mode whenever it goes off source
+                if value == '':
+                    value = '(null)'
+
             if param == 'telescope_onSource':
                 # this can be a string or a bool
                 if isinstance(value, str) and value in {'true', 'True'}:  # I have only seen 'true'
