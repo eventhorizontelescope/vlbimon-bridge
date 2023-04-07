@@ -96,22 +96,7 @@ def bridge_cli(cmd):
         flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
         tables = utils.flat_to_tables(flat)
 
-        con = sqlite3.connect(cmd.sqlitedb)
-        cur = con.cursor()
-
-        if verbose:
-            print('inserting', len(tables), 'items', file=sys.stderr)
-        for param, data in tables.items():
-            try:
-                cur.executemany('INSERT INTO ts_param_{} VALUES(?, ?, ?)'.format(param), data)
-            except sqlite3.OperationalError as e:
-                # sqlite3.OperationalError: no such table: ts_param_127_0_0_1
-                if verbose:
-                    print('skipping', repr(e), data, file=sys.stderr)
-                pass
-
-        con.commit()
-        con.close()
+        sqlite3.insert_many(tables, cmd.sqlitedb, verbose=verbose)
 
         with open(metadata_file, 'w') as f:
             # do this after successful database writes

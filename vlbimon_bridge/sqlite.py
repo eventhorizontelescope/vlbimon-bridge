@@ -71,3 +71,23 @@ def configure_wal(cur, wal_size, verbose=0):
     cur.execute('PRAGMA journal_mode=WAL')
     cur.execute('PRAGMA synchronous=NORMAL')  # recommended for WAL. affects "main" database
     cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))  # defaults to 1000 4k pages (4 MB)
+
+
+def insert_many(tables, sqlitedb, verbose=0):
+    con = sqlite3.connect(sqlitedb)
+    cur = con.cursor()
+
+    if verbose:
+        print('inserting', len(tables), 'items', file=sys.stderr)
+
+    for param, data in tables.items():
+        try:
+            cur.executemany('INSERT INTO ts_param_{} VALUES(?, ?, ?)'.format(param), data)
+        except sqlite3.OperationalError as e:
+            # sqlite3.OperationalError: no such table: ts_param_127_0_0_1
+            if verbose:
+                print('skipping', repr(e), data, file=sys.stderr)
+            pass
+
+    con.commit()
+    con.close()
