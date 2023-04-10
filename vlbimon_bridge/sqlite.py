@@ -1,5 +1,6 @@
 import os.path
 import sys
+import time
 
 import sqlite3
 
@@ -34,7 +35,7 @@ def initdb(cmd):
 
     if verbose:
         print('initializing sqlite db', sqlitedb, file=sys.stderr)
-    con = sqlite3.connect(sqlitedb)
+    con = connect(sqlitedb)
     cur = con.cursor()
 
     transformer.init(verbose=verbose)
@@ -59,6 +60,20 @@ def initdb(cmd):
         configure_wal(cur, cmd.wal, verbose=verbose)
 
 
+def connect(database, *args, verbose=0, **kwargs):
+    con = sqlite3.connect(database, *args, **kwargs)
+    if verbose:
+        cur = con.cursor()
+        for row in cur.execute('PRAGMA journal_mode'):  # WAL, geting WAL
+            print(row)
+        for row in cur.execute('PRAGMA synchronous'):  # NORMAL, getting 2
+            print(row)
+        for row in cur.execute('PRAGMA wal_autocheckpoint'):  # 10000, getting 1000 (?)
+            print(row)
+        cur.close()
+    return con
+
+
 def add_timeseries(cur, param, vlbi_type, verbose=0):
     cur.execute('CREATE TABLE ts_param_{} (time INTEGER NOT NULL, station TEXT NOT NULL, value {})'.format(param, vlbi_type))
     cur.execute('CREATE INDEX idx_ts_param_{}_time ON ts_param_{}(time)'.format(param, param))
@@ -67,14 +82,15 @@ def add_timeseries(cur, param, vlbi_type, verbose=0):
 
 def configure_wal(cur, wal_size, verbose=0):
     if verbose:
-        print('setting up Write Ahead Log (WAL) in squlite db, size in pages is', wal_size, file=sys.stderr)
+        print('setting up Write Ahead Log (WAL) in sqlite db, size in pages is', wal_size, file=sys.stderr)
     cur.execute('PRAGMA journal_mode=WAL')
     cur.execute('PRAGMA synchronous=NORMAL')  # recommended for WAL. affects "main" database
     cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))  # defaults to 1000 4k pages (4 MB)
 
 
 def insert_many(tables, sqlitedb, verbose=0):
-    con = sqlite3.connect(sqlitedb)
+    t = time.time()
+    con = connect(sqlitedb, verbose=verbose)
     cur = con.cursor()
 
     if verbose:
@@ -89,5 +105,9 @@ def insert_many(tables, sqlitedb, verbose=0):
                 print('skipping', repr(e), data, file=sys.stderr)
             pass
 
+    cur.close()
     con.commit()
     con.close()
+
+    if verbose > 1:
+        print('sqlite insert_many took {} seconds'.format(round(time.time() - t, 3)))
