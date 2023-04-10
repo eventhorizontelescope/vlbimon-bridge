@@ -5,6 +5,11 @@ make-types:
 	python scripts/generate_types.py  > vlbimon_types.csv
 
 vlbimon.db:
-	python create_tables.py
-	python insert_station.py data-e22g18
-	mv vlbimon.db vlbimon-e22g18.db
+	vlbimon_bridge initdb --sqlitedb vlbimon-e22g18.db --wal 0
+	python insert_station.py vlbimon-e22g18.db data-e22g18
+
+bridge.db:
+	vlbimon_bridge -v -v initdb --sqlitedb test.db
+
+test-bridge:
+	vlbimon_bridge -v -v bridge --sqlitedb test.db
