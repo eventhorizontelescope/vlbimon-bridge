@@ -52,6 +52,7 @@ def bridge_cli(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
     secrets = cmd.secrets
+    exit_file = datadir + '/PLEASE-EXIT'
 
     if not os.path.isfile(cmd.sqlitedb):
         # error out early if the db doesn't exist
@@ -96,9 +97,17 @@ def bridge_cli(cmd):
         flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
         tables = utils.flat_to_tables(flat)
 
-        sqlite3.insert_many(tables, cmd.sqlitedb, verbose=verbose)
+        sqlite.insert_many(tables, cmd.sqlitedb, verbose=verbose)
 
         with open(metadata_file, 'w') as f:
             # do this after successful database writes
             # XXX maybe new + os.replace()
             json.dump({'sessionid': sessionid, 'last_snap': last_snap}, f, sort_keys=True)
+
+        if os.path.exists(exit_file):
+            print('exiting on', exit_file, file=sys.stderr)
+            try:
+                os.remove(exit_file)
+            except FileNotFoundError:
+                pass
+            break
