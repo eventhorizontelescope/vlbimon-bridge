@@ -35,7 +35,7 @@ def initdb(cmd):
 
     if verbose:
         print('initializing sqlite db', sqlitedb, file=sys.stderr)
-    con = connect(sqlitedb)
+    con = sqlite3.connect(sqlitedb)
     cur = con.cursor()
 
     transformer.init(verbose=verbose)
@@ -56,20 +56,31 @@ def initdb(cmd):
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
-    if cmd.wal:
+    if cmd.wal != 0:
+        # cli.py default is None, which != 0
         configure_wal(cur, cmd.wal, verbose=verbose)
+
+    cur.close()
+    con.commit()
+    con.close()
 
 
 def connect(database, *args, verbose=0, **kwargs):
     con = sqlite3.connect(database, *args, **kwargs)
+
+    cur = con.cursor()
+    configure_wal(cur, verbose=verbose)
+    cur.close()
+
     if verbose:
         cur = con.cursor()
-        for row in cur.execute('PRAGMA journal_mode'):  # WAL, geting WAL
+        for row in cur.execute('PRAGMA journal_mode'):
+            assert row[0] == 'wal'
+        for row in cur.execute('PRAGMA synchronous'):
             print(row)
-        for row in cur.execute('PRAGMA synchronous'):  # NORMAL, getting 2
-            print(row)
-        for row in cur.execute('PRAGMA wal_autocheckpoint'):  # 10000, getting 1000 (?)
-            print(row)
+            assert row[0] == 1  # 1=NORMAL, does not persist
+        for row in cur.execute('PRAGMA wal_autocheckpoint'):
+            assert row[0] == 1000  # the default
         cur.close()
     return con
 
@@ -80,17 +91,19 @@ def add_timeseries(cur, param, vlbi_type, verbose=0):
     cur.execute('CREATE INDEX idx_ts_param_{}_station ON ts_param_{}(station)'.format(param, param))
 
 
-def configure_wal(cur, wal_size, verbose=0):
+def configure_wal(cur, wal_size=None, verbose=0):
     if verbose:
         print('setting up Write Ahead Log (WAL) in sqlite db, size in pages is', wal_size, file=sys.stderr)
     cur.execute('PRAGMA journal_mode=WAL')
-    cur.execute('PRAGMA synchronous=NORMAL')  # recommended for WAL. affects "main" database
-    cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))  # defaults to 1000 4k pages (4 MB)
+    # recommended for WAL. affects "main" database, does not persist
+    cur.execute('PRAGMA synchronous=NORMAL')
+    if wal_size is not None:
+        # defaults to 1000 4k pages (4 MB), does not persist
+        cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))
 
 
-def insert_many(tables, sqlitedb, verbose=0):
+def insert_many(con, tables, verbose=0):
     t = time.time()
-    con = connect(sqlitedb, verbose=verbose)
     cur = con.cursor()
 
     if verbose:
@@ -107,7 +120,6 @@ def insert_many(tables, sqlitedb, verbose=0):
 
     cur.close()
     con.commit()
-    con.close()
 
     if verbose > 1:
         print('sqlite insert_many took {} seconds'.format(round(time.time() - t, 3)))

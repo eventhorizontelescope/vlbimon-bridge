@@ -8,7 +8,7 @@ vlbimon.db:
 	vlbimon_bridge initdb --sqlitedb vlbimon-e22g18.db --wal 0
 	python insert_station.py vlbimon-e22g18.db data-e22g18
 
-bridge.db:
+test.db:
 	vlbimon_bridge -v -v initdb --sqlitedb test.db
 
 test-bridge:

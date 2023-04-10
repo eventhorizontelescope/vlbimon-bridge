@@ -35,7 +35,7 @@ def main(args=None):
     hist.set_defaults(func=history.history)
 
     initdb = subparsers.add_parser('initdb', help='initialize a sqlite database')
-    initdb.add_argument('--wal', action='store', type=int, default=10000, help='size of the write ahead log, default 10000 4k pages. 0 to disable.')
+    initdb.add_argument('--wal', action='store', help='size of the write ahead log, default 1000 4k pages. 0 to disable.')
     initdb.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
     initdb.set_defaults(func=sqlite.initdb)
 
@@ -45,7 +45,7 @@ def main(args=None):
     bridge.set_defaults(func=bridge_cli)
 
     cmd = parser.parse_args(args=args)
-    cmd.func(cmd)
+    return cmd.func(cmd)
 
 
 def bridge_cli(cmd):
@@ -84,30 +84,37 @@ def bridge_cli(cmd):
 
     next_deadline = 0
     server = 'https://' + server
+    con = sqlite.connect(cmd.sqlitedb, verbose=verbose)
 
-    while True:
-        if next_deadline:
-            gap = next_deadline - time.time()
-            if gap > 0:
-                time.sleep(gap)
-        next_deadline = time.time() + cmd.dt
+    try:
+        while True:
+            if next_deadline:
+                gap = next_deadline - time.time()
+                if gap > 0:
+                    time.sleep(gap)
+            next_deadline = time.time() + cmd.dt
 
-        sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
-        flat = utils.flatten(snap, add_points=True, verbose=verbose)
-        flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
-        tables = utils.flat_to_tables(flat)
+            sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
+            flat = utils.flatten(snap, add_points=True, verbose=verbose)
+            flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
+            tables = utils.flat_to_tables(flat)
 
-        sqlite.insert_many(tables, cmd.sqlitedb, verbose=verbose)
+            sqlite.insert_many(con, tables, verbose=verbose)
 
-        with open(metadata_file, 'w') as f:
-            # do this after successful database writes
-            # XXX maybe new + os.replace()
-            json.dump({'sessionid': sessionid, 'last_snap': last_snap}, f, sort_keys=True)
+            with open(metadata_file, 'w') as f:
+                # do this after successful database writes
+                # XXX maybe new + os.replace()
+                json.dump({'sessionid': sessionid, 'last_snap': last_snap}, f, sort_keys=True)
 
-        if os.path.exists(exit_file):
-            print('exiting on', exit_file, file=sys.stderr)
-            try:
-                os.remove(exit_file)
-            except FileNotFoundError:
-                pass
-            break
+            if os.path.exists(exit_file):
+                print('exiting on', exit_file, file=sys.stderr)
+                try:
+                    os.remove(exit_file)
+                except FileNotFoundError:
+                    pass
+                break
+    except KeyboardInterrupt:
+        print('^C seen, gracefully closing database', file=sys.stderr)
+        sys.stderr.flush()
+        con.close()
+        raise
