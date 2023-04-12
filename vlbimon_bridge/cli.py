@@ -4,7 +4,6 @@ import os
 import os.path
 import json
 import sys
-import sqlite3
 
 from . import history
 from . import client
@@ -19,6 +18,7 @@ def main(args=None):
     parser.add_argument('--verbose', '-v', action='count', default=0, help='be verbose')
     parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
     parser.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
+    parser.add_argument('--stations', action='append', help='stations to process (default all)')
     parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
     parser.add_argument('--secrets', action='store', default='~/.vlbimonitor-secrets.yaml', help='file containing auth secrets, default ~/.vlbimonitor-secrets.yaml')
 
@@ -31,7 +31,6 @@ def main(args=None):
     hist.add_argument('--all', action='store_true', help='process all parameters')
     hist.add_argument('--end', action='store', type=int, help='end time (unixtime integer)')
     hist.add_argument('--param', action='append', help='param to process (default all)')
-    hist.add_argument('--stations', action='append', help='stations to process (default all)')
     hist.set_defaults(func=history.history)
 
     initdb = subparsers.add_parser('initdb', help='initialize a sqlite database')
@@ -58,7 +57,9 @@ def bridge_cli(cmd):
         # error out early if the db doesn't exist
         raise ValueError('database file {} does not exist'.format(cmd.sqlitedb))
 
-    transformer.init(verbose=verbose)
+    stations = transformer.init(verbose=verbose)
+    stations = cmd.stations or stations
+
     if cmd.one:
         server = 'vlbimon1.science.ru.nl'
     else:
@@ -85,6 +86,7 @@ def bridge_cli(cmd):
     next_deadline = 0
     server = 'https://' + server
     con = sqlite.connect(cmd.sqlitedb, verbose=verbose)
+    station_status = transformer.init_station_status(stations, verbose=verbose)
 
     try:
         while True:
@@ -98,8 +100,9 @@ def bridge_cli(cmd):
             flat = utils.flatten(snap, add_points=True, verbose=verbose)
             flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
             tables = utils.flat_to_tables(flat)
+            status_table = transformer.update_station_status(station_status, tables, verbose=verbose)
 
-            sqlite.insert_many(con, tables, verbose=verbose)
+            sqlite.insert_many(con, tables, status_table, verbose=verbose)
 
             with open(metadata_file, 'w') as f:
                 # do this after successful database writes

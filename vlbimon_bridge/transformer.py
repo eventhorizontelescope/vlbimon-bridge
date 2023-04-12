@@ -1,6 +1,7 @@
 import sys
 import re
 from collections import defaultdict
+import json
 
 from . import utils
 
@@ -28,6 +29,8 @@ def init(verbose=0):
         print('splitters:', *splitters, file=sys.stderr)
         print('events:', *telescope_events, file=sys.stderr)
 
+    return stations
+
 
 def expand_ra_dec(param):
     if param == 'telescope_azimuthElevation':
@@ -51,6 +54,7 @@ event_map = {
     'observerMessages_observer': 'observer is',
     'observerMessages_observatoryStatus': 'status is',
     'observerMessages_weather': 'weather is',
+    # telescope_onSource handled below
 }
 
 
@@ -68,10 +72,10 @@ def transform_events(flat, verbose=0, dedup_events=False):
                 continue
             station_latest_event[station][param] = value
 
-            if param == 'telescope_observingMode' and station == 'SMA':
+            if param == 'telescope_observingMode':
                 # SMA sends a mode of ' ' whenever it goes off source
-                if value == ' ':
-                    value = '(null)'
+                if value.isspace():
+                    value = ''
 
             if param == 'telescope_onSource':
                 # this can be a string or a bool
@@ -113,3 +117,62 @@ def transform_split_coords(flat, verbose=0):
         print('splits', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
     return flat + extras
+
+
+def init_station_status(stations, verbose=0):
+    station_status = {}
+    for s in stations:
+        ss = {}
+        for key in ('source', 'mode', 'onsource'):
+            ss[key] = ''
+        ss['time'] = 0
+        ss['station'] = s
+        station_status[s] = ss
+
+    if verbose > 1:
+        print('init station status')
+        print(json.dumps(station_status, sort_keys=True, indent=4))
+    return station_status
+
+
+def update_station_status(station_status, tables, verbose=0):
+    changed = set()
+
+    for point in tables.get('telescope_telescope_sourceName', []):
+        recv_time, station, value = point
+        if value.isspace():  # SMA sends a ' ' when it goes off source
+            value = ''
+        station_status[station]['source'] = value
+        changed.add(station)
+
+    for point in tables.get('telescope_observingMode', []):
+        recv_time, station, value = point
+        station_status[station]['mode'] = value
+        changed.add(station)
+
+    for point in tables.get('telescope_onSource', []):
+        recv_time, station, value = point
+        if value:
+            v = 'on'
+        else:
+            v = 'off'
+            source = station_status[station]['source']
+            if recv_time > station_status[station]['time'] and source and not source.startswith('was '):
+                station_status[station]['source'] = 'was ' + source
+        station_status[station]['onsource'] = v
+        changed.add(station)
+
+    status_table = []
+    for station in changed:
+        if verbose > 1:
+            print('station', station, 'has changed')
+            print(json.dumps(station_status[station], sort_keys=True, indent=4))
+        station_status[station]['time'] = recv_time
+        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'mode', 'onsource')])
+
+    if verbose > 1:
+        print('station status')
+        for row in status_table:
+            print(row)
+
+    return status_table

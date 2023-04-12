@@ -56,6 +56,8 @@ def initdb(cmd):
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
+    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, mode TEXT NOT NULL, onoffsource TEXT NOT NULL);')
+
     if cmd.wal != 0:
         # cli.py default is None, which != 0
         configure_wal(cur, cmd.wal, verbose=verbose)
@@ -102,7 +104,7 @@ def configure_wal(cur, wal_size=None, verbose=0):
         cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))
 
 
-def insert_many(con, tables, verbose=0):
+def insert_many(con, tables, status_table, verbose=0):
     t = time.time()
     cur = con.cursor()
 
@@ -117,6 +119,9 @@ def insert_many(con, tables, verbose=0):
             if verbose:
                 print('skipping', repr(e), data, file=sys.stderr)
             pass
+
+    if status_table:
+        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?)', status_table)
 
     cur.close()
     con.commit()
