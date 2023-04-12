@@ -152,13 +152,16 @@ def update_station_status(station_status, tables, verbose=0):
 
     for point in tables.get('telescope_onSource', []):
         recv_time, station, value = point
+        source = station_status[station]['source']
         if value:
             v = 'on'
+            # this is trying to be a bit too clever... hard to be sure that time ordering is correct
+            #if recv_time > station_status[station]['time'] and source and source.startswith('was '):
+            #    station_status[station]['source'] = source
         else:
             v = 'off'
-            source = station_status[station]['source']
-            if recv_time > station_status[station]['time'] and source and not source.startswith('was '):
-                station_status[station]['source'] = 'was ' + source
+            #if recv_time > station_status[station]['time'] and source and not source.startswith('was '):
+            #    station_status[station]['source'] = 'was ' + source
         station_status[station]['onsource'] = v
         changed.add(station)
 
