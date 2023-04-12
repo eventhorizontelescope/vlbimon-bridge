@@ -61,6 +61,13 @@ event_map = {
 station_latest_event = defaultdict(dict)
 
 
+def onsource(value):
+    if isinstance(value, str) and value in {'true', 'True'}:  # I have only seen 'true'
+        return True
+    elif isinstance(value, bool) and value:  # KP, SMTO
+        return True
+
+
 def transform_events(flat, verbose=0, dedup_events=False):
     extras = []
     for f in flat:
@@ -78,10 +85,7 @@ def transform_events(flat, verbose=0, dedup_events=False):
                     value = ''
 
             if param == 'telescope_onSource':
-                # this can be a string or a bool
-                if isinstance(value, str) and value in {'true', 'True'}:  # I have only seen 'true'
-                    event = 'is on source'
-                elif isinstance(value, bool) and value:  # KP, SMTO
+                if onsource(value):
                     event = 'is on source'
                 else:
                     event = 'is off source'
@@ -153,7 +157,8 @@ def update_station_status(station_status, tables, verbose=0):
     for point in tables.get('telescope_onSource', []):
         recv_time, station, value = point
         #source = station_status[station]['source']
-        if value:
+        # value is either str {'True', 'true'} or a bool
+        if onsource(value):
             v = 'on'
             # this is trying to be a bit too clever... hard to be sure that time ordering is correct
             #if recv_time > station_status[station]['time'] and source and source.startswith('was '):
