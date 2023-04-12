@@ -138,7 +138,7 @@ def init_station_status(stations, verbose=0):
 def update_station_status(station_status, tables, verbose=0):
     changed = set()
 
-    for point in tables.get('telescope_telescope_sourceName', []):
+    for point in tables.get('telescope_sourceName', []):
         recv_time, station, value = point
         if value.isspace():  # SMA sends a ' ' when it goes off source
             value = ''
@@ -152,7 +152,7 @@ def update_station_status(station_status, tables, verbose=0):
 
     for point in tables.get('telescope_onSource', []):
         recv_time, station, value = point
-        source = station_status[station]['source']
+        #source = station_status[station]['source']
         if value:
             v = 'on'
             # this is trying to be a bit too clever... hard to be sure that time ordering is correct
@@ -167,7 +167,8 @@ def update_station_status(station_status, tables, verbose=0):
 
     status_table = []
     for station in changed:
-        if verbose > 1:
+        #if verbose > 1:
+        if True:
             print('station', station, 'has changed')
             print(json.dumps(station_status[station], sort_keys=True, indent=4))
         station_status[station]['time'] = recv_time
