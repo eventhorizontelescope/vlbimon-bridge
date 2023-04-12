@@ -56,7 +56,7 @@ def initdb(cmd):
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
-    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, mode TEXT NOT NULL, onoffsource TEXT NOT NULL);')
+    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, onsource TEXT NOT NULL, mode TEXT NOT NULL);')
 
     if cmd.wal != 0:
         # cli.py default is None, which != 0

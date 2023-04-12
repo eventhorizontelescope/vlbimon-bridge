@@ -168,7 +168,7 @@ def update_station_status(station_status, tables, verbose=0):
             print('station', station, 'has changed')
             print(json.dumps(station_status[station], sort_keys=True, indent=4))
         station_status[station]['time'] = recv_time
-        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'mode', 'onsource')])
+        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'onsource', 'mode')])
 
     if verbose > 1:
         print('station status')
