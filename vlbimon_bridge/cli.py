@@ -102,7 +102,9 @@ def bridge_cli(cmd):
             tables = utils.flat_to_tables(flat)
             status_table = transformer.update_station_status(station_status, tables, verbose=verbose)
 
-            sqlite.insert_many(con, tables, status_table, verbose=verbose)
+            sqlite.insert_many_ts(con, tables, verbose=verbose)
+            sqlite.insert_many_status(con, status_table, verbose=verbose)
+            con.commit()
 
             with open(metadata_file, 'w') as f:
                 # do this after successful database writes

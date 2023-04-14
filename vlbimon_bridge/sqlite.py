@@ -104,7 +104,7 @@ def configure_wal(cur, wal_size=None, verbose=0):
         cur.execute('PRAGMA wal_autocheckpoint={}'.format(wal_size))
 
 
-def insert_many(con, tables, status_table, verbose=0):
+def insert_many_ts(con, tables, verbose=0):
     t = time.time()
     cur = con.cursor()
 
@@ -120,11 +120,19 @@ def insert_many(con, tables, status_table, verbose=0):
                 print('skipping', repr(e), data, file=sys.stderr)
             pass
 
-    if status_table:
-        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?)', status_table)
-
     cur.close()
-    con.commit()
 
     if verbose > 1:
         print('sqlite insert_many took {} seconds'.format(round(time.time() - t, 3)))
+
+
+def insert_many_status(con, status_table, verbose=0):
+    if status_table:
+        cur = con.cursor()
+
+        if verbose:
+            print('inserting', len(status_table), 'station_status updates', file=sys.stderr)
+
+        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?)', status_table)
+
+        cur.close()
