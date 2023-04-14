@@ -86,7 +86,7 @@ def bridge_cli(cmd):
     next_deadline = 0
     server = 'https://' + server
     con = sqlite.connect(cmd.sqlitedb, verbose=verbose)
-    station_status = transformer.init_station_status(stations, verbose=verbose)
+    station_status = transformer.init_station_status(con, stations, verbose=verbose)
 
     try:
         while True:

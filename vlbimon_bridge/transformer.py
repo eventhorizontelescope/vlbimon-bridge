@@ -4,6 +4,7 @@ from collections import defaultdict
 import json
 
 from . import utils
+from . import sqlite
 
 splitters = []
 splitters_expanded = []
@@ -123,7 +124,7 @@ def transform_split_coords(flat, verbose=0):
     return flat + extras
 
 
-def init_station_status(stations, verbose=0):
+def init_station_status(con, stations, verbose=0):
     station_status = {}
     for s in stations:
         ss = {}
@@ -136,6 +137,27 @@ def init_station_status(stations, verbose=0):
     if verbose > 1:
         print('init station status')
         print(json.dumps(station_status, sort_keys=True, indent=4))
+
+    rows = sqlite.get_station_status(con)
+    changed = set()
+    for r in rows:
+        station = r['station']
+        if station not in station_status:
+            print('ignoring readback of unknown station', station)
+            continue
+        changed.add(station)
+        for k in r.keys():
+            if k == 'station':
+                continue
+            station_status[station][k] = r[k]
+
+    if verbose > 1:
+        print('restored station status')
+        for k, v in station_status.items():
+            if k not in changed:
+                continue
+            print(json.dumps(station_status[k], sort_keys=True))
+
     return station_status
 
 

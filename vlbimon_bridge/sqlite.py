@@ -136,3 +136,12 @@ def insert_many_status(con, status_table, verbose=0):
         cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?)', status_table)
 
         cur.close()
+
+
+def get_station_status(con, verbose=0):
+    cur = con.cursor()
+    cur.row_factory = sqlite3.Row
+    cur.execute('SELECT * FROM station_status')
+    rows = cur.fetchall()
+    cur.close()
+    return rows
