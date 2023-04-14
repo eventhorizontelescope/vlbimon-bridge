@@ -132,6 +132,7 @@ def init_station_status(con, stations, verbose=0):
             ss[key] = ''
         ss['time'] = 0
         ss['station'] = s
+        ss['recording'] = '....'
         station_status[s] = ss
 
     if verbose > 1:
@@ -149,6 +150,9 @@ def init_station_status(con, stations, verbose=0):
         for k in r.keys():
             if k == 'station':
                 continue
+            if k == 'recording':
+                if len(r[k]) != 4:
+                    continue
             station_status[station][k] = r[k]
 
     if verbose > 1:
@@ -159,6 +163,24 @@ def init_station_status(con, stations, verbose=0):
             print(json.dumps(station_status[k], sort_keys=True))
 
     return station_status
+
+
+recorder_map = {
+    'recorder_1_shouldRecord': 1,
+    'recorder_2_shouldRecord': 2,
+    'recorder_3_shouldRecord': 3,
+    'recorder_1_shouldRecord': 4,
+}
+
+
+def recording_set_or_unset(station_dict, recorder, value):
+    by = bytearray(station_dict['recording'], encoding='utf8')
+    if value:
+        letter = ord('0') + recorder
+    else:
+        letter = ord('.')
+    by[recorder-1] = letter
+    station_dict['recording'] = by.decode('utf8')
 
 
 def update_station_status(station_status, tables, verbose=0):
@@ -192,6 +214,12 @@ def update_station_status(station_status, tables, verbose=0):
         station_status[station]['onsource'] = v
         changed.add(station)
 
+    for table in recorder_map.keys():
+        for point in tables.get(table, []):
+            recv_time, station, value = point
+            recording_set_or_unset(station_status[station], recorder_map[table], value)
+            changed.add(station)
+
     status_table = []
     for station in changed:
         #if verbose > 1:
@@ -199,7 +227,7 @@ def update_station_status(station_status, tables, verbose=0):
             print('station', station, 'has changed')
             print(json.dumps(station_status[station], sort_keys=True, indent=4))
         station_status[station]['time'] = recv_time
-        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'onsource', 'mode')])
+        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'onsource', 'mode', 'recording')])
 
     if verbose > 1:
         print('station status')

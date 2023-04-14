@@ -133,7 +133,7 @@ def insert_many_status(con, status_table, verbose=0):
         if verbose:
             print('inserting', len(status_table), 'station_status updates', file=sys.stderr)
 
-        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?)', status_table)
+        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?, ?)', status_table)
 
         cur.close()
 
