@@ -169,7 +169,7 @@ recorder_map = {
     'recorder_1_shouldRecord': 1,
     'recorder_2_shouldRecord': 2,
     'recorder_3_shouldRecord': 3,
-    'recorder_1_shouldRecord': 4,
+    'recorder_4_shouldRecord': 4,
 }
 
 
