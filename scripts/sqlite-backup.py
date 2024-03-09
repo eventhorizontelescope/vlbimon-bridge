@@ -7,7 +7,7 @@ dest = sys.argv[2]
 src_con = sqlite3.connect(src)
 src_cur = src_con.cursor()
 
-print('starting merge of the WAL (write head log)')
+print('starting merge of the WAL (write ahead log)')
 src_cur.execute('PRAGMA wal_checkpoint(TRUNCATE)')
 src_con.commit()
 print(' finished')
