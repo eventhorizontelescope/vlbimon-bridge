@@ -12,6 +12,8 @@ src_cur.execute('PRAGMA wal_checkpoint(TRUNCATE)')
 src_con.commit()
 print(' finished')
 
+# at this point the WAL ?might? re-appear, but its size will be minimized
+
 dest_con = sqlite3.connect(dest)
 dest_cur = dest_con.cursor()
 

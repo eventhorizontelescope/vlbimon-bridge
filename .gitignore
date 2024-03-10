@@ -4,3 +4,6 @@ PARAMETERS
 build/
 vlbimon_bridge.egg-info/
 __pycache__
+*.db
+vlbimon_types.csv
+masterlist.json

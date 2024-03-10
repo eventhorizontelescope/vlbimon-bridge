@@ -56,7 +56,8 @@ def initdb(cmd):
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
-    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, onsource TEXT NOT NULL, mode TEXT NOT NULL);')
+    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, onsource TEXT NOT NULL, mode TEXT NOT NULL, recording TEXT NOT NULL)')
+    # sqlite will create sqlite_autoindex_station_status_1 because of the primary key
 
     if cmd.wal != 0:
         # cli.py default is None, which != 0
@@ -72,6 +73,7 @@ def connect(database, *args, verbose=0, **kwargs):
 
     cur = con.cursor()
     configure_wal(cur, verbose=verbose)
+    cur.execute('PRAGMA busy_timeout=100')
     cur.close()
 
     if verbose:
@@ -83,6 +85,8 @@ def connect(database, *args, verbose=0, **kwargs):
             assert row[0] == 1  # 1=NORMAL, does not persist
         for row in cur.execute('PRAGMA wal_autocheckpoint'):
             assert row[0] == 1000  # the default
+        for row in cur.execute('PRAGMA busy_timeout'):
+            assert row[0] == 100
         cur.close()
     return con
 

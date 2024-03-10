@@ -17,19 +17,19 @@ def main(args=None):
 
     parser.add_argument('--verbose', '-v', action='count', default=0, help='be verbose')
     parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
-    parser.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
     parser.add_argument('--stations', action='append', help='stations to process (default all)')
-    parser.add_argument('--datadir', action='store', default='data', help='directory to write output in')
+    parser.add_argument('--datadir', action='store', default='data', help='directory to write output in (default ./data)')
     parser.add_argument('--secrets', action='store', default='~/.vlbimonitor-secrets.yaml', help='file containing auth secrets, default ~/.vlbimonitor-secrets.yaml')
 
     subparsers = parser.add_subparsers(dest='cmd')
     subparsers.required = True
 
-    hist = subparsers.add_parser('history', help='')
+    hist = subparsers.add_parser('history', help='download historical vlbimon data to csv files')
+    hist.add_argument('--start', action='store', type=int, help='start time (unixtime integer)')
+    hist.add_argument('--end', action='store', type=int, help='end time (unixtime integer)')
+    hist.add_argument('--all', action='store_true', help='process all public and private parameters')
     hist.add_argument('--public', action='store_true', help='process public parameters (year round)')
     hist.add_argument('--private', action='store_true', help='process private parameters (during EHT obs)')
-    hist.add_argument('--all', action='store_true', help='process all parameters')
-    hist.add_argument('--end', action='store', type=int, help='end time (unixtime integer)')
     hist.add_argument('--param', action='append', help='param to process (default all)')
     hist.set_defaults(func=history.history)
 
@@ -39,6 +39,7 @@ def main(args=None):
     initdb.set_defaults(func=sqlite.initdb)
 
     bridge = subparsers.add_parser('bridge', help='bridge data from vlbimon into a sqlite database')
+    bridge.add_argument('--start', action='store', type=int, help='start time (unixtime integer) (0=now) (default reads data/server.json last_snap)')
     bridge.add_argument('--dt', action='store', type=int, default=10, help='time between calls, seconds, default=10')
     bridge.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
     bridge.set_defaults(func=bridge_cli)
@@ -80,8 +81,11 @@ def bridge_cli(cmd):
     if sessionid is None:
         sessionid = client.get_sessionid(server, auth=auth)
         last_snap = int(time.time())
-    if cmd.start:  # overrides
-        last_snap = cmd.start
+    if cmd.start is not None:  # overrides .json last_snap
+        if cmd.start == 0:
+            last_snap = int(time.time())
+        else:
+            last_snap = cmd.start
 
     next_deadline = 0
     server = 'https://' + server
