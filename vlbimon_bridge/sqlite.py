@@ -59,20 +59,16 @@ def initdb(cmd):
     cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, onsource TEXT NOT NULL, mode TEXT NOT NULL, recording TEXT NOT NULL)')
     # sqlite will create sqlite_autoindex_station_status_1 because of the primary key
 
-    if cmd.wal != 0:
-        # cli.py default is None, which != 0
-        configure_wal(cur, cmd.wal, verbose=verbose)
-
     cur.close()
     con.commit()
     con.close()
 
 
-def connect(database, *args, verbose=0, **kwargs):
+def connect(database, *args, wal_size=None, verbose=0, **kwargs):
     con = sqlite3.connect(database, *args, **kwargs)
 
     cur = con.cursor()
-    configure_wal(cur, verbose=verbose)
+    configure_wal(cur, wal_size=wal_size, verbose=verbose)
     cur.execute('PRAGMA busy_timeout=100')
     cur.close()
 

@@ -41,7 +41,7 @@ def main(args=None):
     bridge.add_argument('--start', action='store', type=int, help='start time (unixtime integer) (0=now) (default reads data/server.json last_snap)')
     bridge.add_argument('--dt', action='store', type=int, default=10, help='time between calls, seconds, default=10')
     bridge.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
-    initdb.add_argument('--wal', action='store', type=int, default=1000, help='size of the write ahead log, default 1000 4k pages. 0 to disable.')
+    bridge.add_argument('--wal', action='store', type=int, default=1000, help='size of the write ahead log, default 1000 4k pages. 0 to disable.')
     bridge.set_defaults(func=bridge_cli)
 
     cmd = parser.parse_args(args=args)
@@ -52,6 +52,7 @@ def bridge_cli(cmd):
     verbose = cmd.verbose
     datadir = cmd.datadir.rstrip('/')
     secrets = cmd.secrets
+    wal_size = cmd.wal
     exit_file = datadir + '/PLEASE-EXIT'
 
     if not os.path.isfile(cmd.sqlitedb):
@@ -70,32 +71,38 @@ def bridge_cli(cmd):
     os.makedirs(datadir, exist_ok=True)
     metadata_file = datadir + '/' + server + '.json'
     sessionid = None
+    last_snap = int(time.time())
     if os.path.isfile(metadata_file):
         with open(metadata_file) as f:
             try:
                 j = json.load(f)
                 sessionid = j['sessionid']
-                last_snap = j['last_snap']
+                try:
+                    last_snap = int(j['last_snap'])
+                except ValueError:
+                    print('invalid last_snap in', metadata_file)
             except json.JSONDecodeError as e:
                 print('surprised while reading {} by {}, ignoring metadata'.format(metadata_file, repr(e)), file=sys.stderr)
+        if verbose:
+            print('got a valid sessionid', sessionid, 'and last snap', last_snap)
     if sessionid is None:
         sessionid = client.get_sessionid(server, auth=auth)
-        last_snap = int(time.time())
+        # last_snap already set
     if cmd.start is not None:  # overrides .json last_snap
         if cmd.start == 0:
             last_snap = int(time.time())
         else:
             last_snap = cmd.start
     delta = int(time.time() - last_snap)
-    if delta > 0:
-        last_snap = time.time()
+    if delta < 0:
+        last_snap = int(time.time())
         delta = 0
     if verbose:
         print('fetching data starting', delta, 'seconds ago')
 
     next_deadline = 0
     server = 'https://' + server
-    con = sqlite.connect(cmd.sqlitedb, verbose=verbose)
+    con = sqlite.connect(cmd.sqlitedb, wal_size=wal_size, verbose=verbose)
     station_status = transformer.init_station_status(con, stations, verbose=verbose)
 
     try:
@@ -104,7 +111,7 @@ def bridge_cli(cmd):
                 delta = next_deadline - time.time()
                 if delta > 0:
                     if verbose:
-                        print('sleeping', delta, 'seconds until the next deadline')
+                        print('sleeping', round(delta, 3), 'seconds until the next deadline')
                     time.sleep(delta)
             next_deadline = time.time() + cmd.dt
 
