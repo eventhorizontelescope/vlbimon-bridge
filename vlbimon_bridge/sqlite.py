@@ -96,6 +96,7 @@ def add_timeseries(cur, param, vlbi_type, verbose=0):
 def configure_wal(cur, wal_size=None, verbose=0):
     if verbose:
         print('setting up Write Ahead Log (WAL) in sqlite db, size in pages is', wal_size, file=sys.stderr)
+        print('while the WAL is active you will see 2 extra files, database.db-wal and database.db-shm')
     cur.execute('PRAGMA journal_mode=WAL')
     # recommended for WAL. affects "main" database, does not persist
     cur.execute('PRAGMA synchronous=NORMAL')
