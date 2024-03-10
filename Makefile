@@ -26,7 +26,7 @@ data-e24j25:
 
 vlbimon-e24j25.db:
 	# no WAL because this is going to be a bulk insert
-	vlbimon_bridge initdb --sqlitedb vlbimon-e24j25.db --wal 0
+	vlbimon_bridge initdb --sqlitedb vlbimon-e24j25.db
 	# XXX where is this script now?
 	python insert_station.py vlbimon-e24j25.db data-e24j25
 

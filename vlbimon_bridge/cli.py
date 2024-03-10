@@ -34,7 +34,6 @@ def main(args=None):
     hist.set_defaults(func=history.history)
 
     initdb = subparsers.add_parser('initdb', help='initialize a sqlite database')
-    initdb.add_argument('--wal', action='store', help='size of the write ahead log, default 1000 4k pages. 0 to disable.')
     initdb.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
     initdb.set_defaults(func=sqlite.initdb)
 
@@ -42,6 +41,7 @@ def main(args=None):
     bridge.add_argument('--start', action='store', type=int, help='start time (unixtime integer) (0=now) (default reads data/server.json last_snap)')
     bridge.add_argument('--dt', action='store', type=int, default=10, help='time between calls, seconds, default=10')
     bridge.add_argument('--sqlitedb', action='store', default='vlbimon.db', help='name of the output database; elsewise, print to stdout')
+    initdb.add_argument('--wal', action='store', type=int, default=1000, help='size of the write ahead log, default 1000 4k pages. 0 to disable.')
     bridge.set_defaults(func=bridge_cli)
 
     cmd = parser.parse_args(args=args)
@@ -86,6 +86,12 @@ def bridge_cli(cmd):
             last_snap = int(time.time())
         else:
             last_snap = cmd.start
+    delta = int(time.time() - last_snap)
+    if delta > 0:
+        last_snap = time.time()
+        delta = 0
+    if verbose:
+        print('fetching data starting', delta, 'seconds ago')
 
     next_deadline = 0
     server = 'https://' + server
@@ -95,9 +101,11 @@ def bridge_cli(cmd):
     try:
         while True:
             if next_deadline:
-                gap = next_deadline - time.time()
-                if gap > 0:
-                    time.sleep(gap)
+                delta = next_deadline - time.time()
+                if delta > 0:
+                    if verbose:
+                        print('sleeping', delta, 'seconds until the next deadline')
+                    time.sleep(delta)
             next_deadline = time.time() + cmd.dt
 
             sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
