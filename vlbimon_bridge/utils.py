@@ -167,3 +167,25 @@ def setup_groups(verbose=0):
     username = os.getlogin()
     if username not in grafana.gr_mem:
         print('warning: this user is not a member of the grafana group.', file=sys.stderr)
+
+
+def checkout_db(fname, mode='w'):
+    if mode == 'r':
+        if not os.path.exists(fname):
+            print('fnamedoes not exist:', fname, file=sys.stderr)
+        if not os.path.isfile(fname):
+            print('fname is not a file:', fname, file=sys.stderr)
+        if not os.access(fname, os.R_OK, follow_symlinks=True):
+            # to do: handle NotImplementedError
+            print('fname cannot be read:', fname, file=sys.stderr)
+    elif mode == 'w':
+        if os.path.exists(fname):
+            if not os.path.isfile(fname):
+                print('must be a file:', fname, file=sys.stderr)
+            if not os.access(fname, os.R_OK | os.W_OK, follow_symlinks=True):
+                print('must to be able to read and write file:', fname, file=sys.stderr)
+        head, tail = os.path.split(fname)
+        if not os.access(head, os.W_OK, follow_symlinks=True):
+            print('I must be about to write the directory in order for WAL to work:', head, file=sys.stderr)
+    else:
+        print('unknown mode', mode)

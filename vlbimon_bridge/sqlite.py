@@ -6,6 +6,7 @@ import sqlite3
 
 from . import types
 from . import transformer
+from . import utils
 
 
 vlbi_types = types.get_types()
@@ -35,6 +36,7 @@ def initdb(cmd):
 
     if verbose:
         print('initializing sqlite db', sqlitedb, file=sys.stderr)
+    utils.checkout_db(sqlitedb, mode='w')
     con = sqlite3.connect(sqlitedb)
     cur = con.cursor()
 
@@ -65,6 +67,7 @@ def initdb(cmd):
 
 
 def connect(database, *args, wal_size=None, verbose=0, **kwargs):
+    utils.checkout_db(database, mode='w')
     con = sqlite3.connect(database, *args, **kwargs)
 
     cur = con.cursor()
