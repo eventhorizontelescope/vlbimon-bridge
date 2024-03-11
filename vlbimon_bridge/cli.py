@@ -58,6 +58,7 @@ def bridge_cli(cmd):
     if not os.path.isfile(cmd.sqlitedb):
         # error out early if the db doesn't exist
         raise ValueError('database file {} does not exist'.format(cmd.sqlitedb))
+    utils.setup_groups(verbose=verbose)
 
     stations = transformer.init(verbose=verbose)
     stations = cmd.stations or stations

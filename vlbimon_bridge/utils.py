@@ -1,8 +1,10 @@
+import os
 import os.path
+import sys
+import grp
 import json
 import time
 from collections import defaultdict
-
 import numpy as np
 
 
@@ -144,3 +146,24 @@ def flat_to_tables(flat):
         station, param, recv_time, value = f
         tables[param].append((recv_time, station, value),)
     return tables
+
+
+def setup_groups(verbose=0):
+    if os.name not in ('posix',):
+        print('this module is not tested on the current os', os.name, file=sys.stderr)
+    if sys.platform in ('wasi', 'emscripten'):
+        # these identify as 'posix' but do not support all of the os module
+        print('this module is not tested on the current platform', sys.platform, file=sys.stderr)
+
+    try:
+        old = os.umask(0o002)
+    except OSError:
+        print('error trying to set the umask to 002', file=sys.stderr)
+        raise
+    if old != 0o002:
+        print('umask was not already 002, changed it', file=sys.stderr)
+
+    grafana = grp.getgrnam('grafana')
+    username = os.getlogin()
+    if username not in grafana.gr_mem:
+        print('warning: this user is not a member of the grafana group.', file=sys.stderr)
