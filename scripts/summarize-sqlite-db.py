@@ -99,13 +99,13 @@ print('stations', *all_stations)
 utc = datetime.timezone.utc
 print('prefixes')
 for pre in sorted(prefix_start.keys()):
-    print('', pre+'_', *[p for p in sorted(prefix_stations[pre])])
+    print(' ', pre+'_', *[p for p in sorted(prefix_stations[pre])])
     for suffix in sorted(suffixes[pre]):
-        print(' ', suffix, end=' ')
         param = pre + '_' + suffix
+        print('   ', param, end=' ')
         for station in sorted(rows_param_station[param]):
             print(station, '({})'.format(rows_param_station[param][station]), end=' ')
         print()
-    print(' ', 'min', min(prefix_start[pre]), 'max', max(prefix_end[pre]))
-    print(' ', 'min', datetime.datetime.fromtimestamp(min(prefix_start[pre]), tz=utc).isoformat(),
+    print('   ', 'min', min(prefix_start[pre]), 'max', max(prefix_end[pre]))
+    print('   ', 'min', datetime.datetime.fromtimestamp(min(prefix_start[pre]), tz=utc).isoformat(),
           'max', datetime.datetime.fromtimestamp(max(prefix_end[pre]), tz=utc).isoformat())
