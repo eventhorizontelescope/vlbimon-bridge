@@ -35,7 +35,7 @@ def init(verbose=0):
 
 def expand_ra_dec(param):
     if param == 'telescope_azimuthElevation':
-        suffix = ('_az', '_alt')
+        suffix = ('_az', '_alt')  # bug1: should be _el, bug2: should affect all datatype = AzElCoordinates
     else:
         suffix = ('_ra', '_dec')
     return (param + suffix[0], param + suffix[1])
