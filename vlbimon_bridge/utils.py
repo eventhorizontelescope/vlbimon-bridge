@@ -185,7 +185,8 @@ def checkout_db(fname, mode='w'):
             if not os.access(fname, os.R_OK | os.W_OK, follow_symlinks=True):
                 print('must to be able to read and write file:', fname, file=sys.stderr)
         head, tail = os.path.split(fname)
-        if not os.access(head, os.W_OK, follow_symlinks=True):
-            print('I must be about to write the directory in order for WAL to work:', head, file=sys.stderr)
+        dirname = os.path.join(head, '.')  # handles head='' correctly
+        if not os.access(dirname, os.W_OK, follow_symlinks=True):
+            print('I must be able to write the directory in order for WAL to work:', dirname, file=sys.stderr)
     else:
         print('unknown mode', mode)
