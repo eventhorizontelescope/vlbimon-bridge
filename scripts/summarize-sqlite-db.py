@@ -94,7 +94,7 @@ for ts in timeseries:
         param_end[param].append(v[0])
         prefix_end[prefix].append(v[0])
 
-print('stations', *all_stations)
+print('stations', *sorted(all_stations))
 
 utc = datetime.timezone.utc
 print('prefixes')
