@@ -7,7 +7,8 @@ from . import utils
 from . import sqlite
 
 splitters = []
-splitters_expanded = []
+splitters_map = {}
+splitters_expanded = []  # used by sqlite.initdb(), assumed to be 'REAL'
 telescope_events = []
 
 
@@ -17,14 +18,14 @@ def init(verbose=0):
     for p, v in parameters.items():
         if 'datatype' in v and v['datatype'] in {'CelestialCoordinates', 'AzElCoordinates'}:
             splitters.append(p)
+            e = splitters_names(p, v['datatype'])
+            splitters_expanded.extend(e)
+            splitters_map[p] = e
         if p.startswith('telescope_') and 'datatype' in v and v['datatype'] == 'string':
             telescope_events.append(p)
         if p.startswith('observerMessages_') and 'datatype' in v and v['datatype'] == 'string':
             telescope_events.append(p)
     telescope_events.append('telescope_onSource')  # a bool
-
-    for s in splitters:
-        splitters_expanded.extend(expand_ra_dec(s))
 
     if verbose:
         print('splitters:', *splitters, file=sys.stderr)
@@ -33,17 +34,19 @@ def init(verbose=0):
     return stations
 
 
-def expand_ra_dec(param):
-    if param == 'telescope_azimuthElevation':
-        suffix = ('_az', '_alt')  # bug1: should be _el, bug2: should affect all datatype = AzElCoordinates
-    else:
+def splitters_names(param, datatype):
+    if datatype == 'AzElCoordinates':
+        suffix = ('_az', '_el')
+    elif datatype == 'CelestialCoordinates':
         suffix = ('_ra', '_dec')
+    else:
+        raise ValueError('do not know how to split '+param)
     return (param + suffix[0], param + suffix[1])
 
 
 def transform(flat, verbose=0, dedup_events=False):
     flat = transform_events(flat, verbose=verbose, dedup_events=dedup_events)
-    flat = transform_split_coords(flat, verbose=verbose)
+    flat = transform_splitters(flat, verbose=verbose)
     return flat
 
 
@@ -104,7 +107,7 @@ def transform_events(flat, verbose=0, dedup_events=False):
     return flat + extras
 
 
-def transform_split_coords(flat, verbose=0):
+def transform_splitters(flat, verbose=0):
     extras = []
     for f in flat:
         station, param, recv_time, value = f
@@ -114,10 +117,10 @@ def transform_split_coords(flat, verbose=0):
             if not m:
                 print('failed to split', station, param, value, file=sys.stderr)
                 continue
-            ra, dec = m.groups()
-            expanded = expand_ra_dec(param)
-            extras.append([station, expanded[0], recv_time, ra])
-            extras.append([station, expanded[1], recv_time, dec])
+            first, second = m.groups()
+            expanded = splitters_map[param]
+            extras.append([station, expanded[0], recv_time, first])
+            extras.append([station, expanded[1], recv_time, second])
     if verbose > 1:
         print('splits', file=sys.stderr)
         [print(e, file=sys.stderr) for e in extras]
