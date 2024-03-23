@@ -59,20 +59,36 @@ renames = {
     'if_4_systemTempAzel_ra': 'if_4_systemTempAzel_az',
 }
 
-count = sum(['ts_param_'+n in names for n in renames.keys()])
-if count == len(renames):
-    print('all renamed tables are present')
-elif count == 0:
-    print('no renamed tables are present')
+old_count = sum(['ts_param_'+n in names for n in renames.keys()])
+if old_count == len(renames):
+    print('all old tables are present')
+elif old_count == 0:
+    print('no old tables are present')
 else:
-    print('some tables are missing?')
+    print('some old tables are missing?')
     for n in renames.keys():
         if n not in names:
             print(' ', n)
-    raise ValueError('not all renames are present')
+    raise ValueError('not all old tables are present')
 
-if verb == 'check' or count == 0:
+new_count = sum(['ts_param_'+n in names for n in renames.values()])
+if new_count == len(renames):
+    print('all new tables are present')
+elif new_count == 0:
+    print('no new tables are present')
+else:
+    print('some new tables are missing?')
+    for n in renames.keys():
+        if n not in names:
+            print(' ', n)
+    raise ValueError('not all new tables are present')
+
+
+if verb == 'check':
     exit(0)
+if old_count != len(renames) or new_count > 0:
+    print('not changing anything')
+    exit(1)
 
 # checks file and directory permissions -- for writing
 print('fixing')
