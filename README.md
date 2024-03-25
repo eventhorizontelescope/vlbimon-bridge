@@ -1,6 +1,6 @@
 # vlbimon-bridge
 
-This code is a bridge from the existing EHT VLBIMonitor database to a
+This code is a bridge from the EHT VLBI Monitor database to a
 time-series database (currently sqlite) that feeds a Grafana instance.
 The reason for this additional database is to make sure that the load
 on the vlbimonitor database remains low, no matter how many users are
