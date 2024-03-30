@@ -114,10 +114,12 @@ def bridge_cli(cmd):
                     if verbose:
                         print('sleeping', round(delta, 3), 'seconds until the next deadline')
                     time.sleep(delta)
-            next_deadline = time.time() + cmd.dt
+            now = time.time()
+            next_deadline = now + cmd.dt
 
             sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
-            flat = utils.flatten(snap, add_points=True, verbose=verbose)
+            bridge_lag = time.time() - now
+            flat = utils.flatten(snap, bridge_lag=bridge_lag, add_points=True, verbose=verbose)
             flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
             tables = utils.flat_to_tables(flat)
             status_table = transformer.update_station_status(station_status, tables, verbose=verbose)

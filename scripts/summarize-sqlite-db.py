@@ -52,6 +52,10 @@ for ts in timeseries:
         prefix = 'extras'
         suffix = param
 
+    if param == 'schedule':
+        # unusual schema
+        continue
+
     res = cur.execute(distinct_query.format(ts))
     values = res.fetchall()
     stations = set(v[0] for v in values)
@@ -77,6 +81,10 @@ prefix_end = defaultdict(list)
 for ts in timeseries:
     param = ts.split('_')[2]
     prefix = param.split('_')[0]
+
+    if param == 'schedule':
+        # stations not station
+        continue
 
     res = cur.execute(firstlast_query.format(ts, 'ASC'))
 

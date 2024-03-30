@@ -97,7 +97,7 @@ def comment_on_masterlist(stations, parameters, verbose=0):
     print(' ', 'len params private', len([x for x in parameters.items() if 'cadence' in x[1] and 'private' in x[1]['cadence']]))
 
 
-def flatten(snap, add_points=False, to_int=True, verbose=0):
+def flatten(snap, bridge_lag=None, add_points=False, to_int=True, verbose=0):
     ret = []
     for s, v in snap.items():
         if s == 'vexfiles':
@@ -122,7 +122,8 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
     if add_points:
         points = len(ret)
         latest_point = int(time.time()) if len(ret) == 0 else max([r[2] for r in ret])
-        lag = time.time() - latest_point  # float
+        total_lag = time.time() - latest_point  # float
+        birdge_lag = ...
         now = int(time.time())
         station_points = defaultdict(int)
         for r in ret:
@@ -131,7 +132,9 @@ def flatten(snap, add_points=False, to_int=True, verbose=0):
             if value > 0:
                 ret.append([s, 'points', int(time.time()), value])
         ret.append(['bridge', 'points', now, points])  # do this last so these are not counted for station 'bridge'
-        ret.append(['bridge', 'lag', now, lag])
+        ret.append(['bridge', 'totalLag', now, total_lag])
+        if bridge_lag:
+            ret.append(['bridge', 'bridgeLag', now, bridge_lag])
 
     if verbose > 1:
         [print(r) for r in ret]

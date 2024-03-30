@@ -26,6 +26,7 @@ def init(verbose=0):
         if p.startswith('observerMessages_') and 'datatype' in v and v['datatype'] == 'string':
             telescope_events.append(p)
     telescope_events.append('telescope_onSource')  # a bool
+    # Tsys and tau225 do not generate events
 
     if verbose:
         print('splitters:', *splitters, file=sys.stderr)
@@ -62,14 +63,24 @@ event_map = {
 }
 
 
+# used to dedup
 station_latest_event = defaultdict(dict)
 
 
 def onsource(value):
-    if isinstance(value, str) and value in {'true', 'True'}:  # I have only seen 'true'
-        return True
-    elif isinstance(value, bool) and value:  # KP, SMTO
-        return True
+    if isinstance(value, str):
+        if value in {'true', 'True'}:  # I have only seen 'true'
+            return 'on'
+        elif value in {'false', 'False'}:  # I have only seen 'False'
+            return 'off'
+    elif isinstance(value, bool):  # KP, SMTO
+        if value:
+            return 'on'
+        else:
+            return 'off'
+
+    print('no idea what onsource value', repr(value), 'means')
+    return 'off'
 
 
 def transform_events(flat, verbose=0, dedup_events=False):
@@ -82,6 +93,9 @@ def transform_events(flat, verbose=0, dedup_events=False):
                     print('deduping event', station, param, value)
                 continue
             station_latest_event[station][param] = value
+
+            if param == 'telescope_epochType':
+                continue
 
             if param == 'telescope_observingMode':
                 # SMA sends a mode of ' ' whenever it goes off source
@@ -96,7 +110,7 @@ def transform_events(flat, verbose=0, dedup_events=False):
             elif param in event_map:
                 event = event_map[param] + ' ' + value
             else:
-                # default formatting. we might want to suppress things like telescope_epochType
+                p = param.replace('observerMessages_', '')
                 p = param.replace('telescope_', '')
                 event = p + ' is ' + value
 
@@ -128,7 +142,10 @@ def transform_splitters(flat, verbose=0):
 
 
 def init_station_status(con, stations, verbose=0):
+    '''Initialize the station status to a valid state, and then try to read it out of the database.'''
     station_status = {}
+
+    # the order here must match the order in sqlite.station_status_cols
     for s in stations:
         ss = {}
         for key in ('source', 'mode', 'onsource'):
@@ -136,6 +153,10 @@ def init_station_status(con, stations, verbose=0):
         ss['time'] = 0
         ss['station'] = s
         ss['recording'] = '....'
+        ss['tsys'] = 0.  # should this be NaN? PICO currently never sets it.
+        ss['tau225'] = 0.  # should this be NaN?
+        ss['scan'] = ''
+
         station_status[s] = ss
 
     if verbose > 1:
@@ -165,6 +186,12 @@ def init_station_status(con, stations, verbose=0):
                 continue
             print(json.dumps(station_status[k], sort_keys=True))
 
+    for station in station_status:
+        if verbose > 1:
+            print('station_status', len(station_status[station]))
+            print('station_status_cols', len(sqlite.station_status_cols))
+        assert len(station_status[station]) == len(sqlite.station_status_cols)
+
     return station_status
 
 
@@ -175,15 +202,29 @@ recorder_map = {
     'recorder_4_shouldRecord': 4,
 }
 
+extra_status_map = {
+    'if_1_systemTemp': 'tsys',
+    'weather_tau225': 'tau225',
+}
 
-def recording_set_or_unset(station_dict, recorder, value):
-    by = bytearray(station_dict['recording'], encoding='utf8')
+status_table_cols = ('time', 'station', 'source', 'onsource', 'mode', 'recording', 'tsys', 'tau225')
+
+
+def recording_set_or_unset(old_value, param, value):
+    recorder = recorder_map[param]  # recorder is an integer 1..4
+    by = bytearray(old_value, encoding='utf8')
     if value:
         letter = ord('0') + recorder
     else:
         letter = ord('.')
     by[recorder-1] = letter
-    station_dict['recording'] = by.decode('utf8')
+    return by.decode('utf8')
+
+
+def station_change(station_status, changed, param, recv_time, station, value):
+        station_status[station][param] = value
+        changed.add(station)
+        station_status[station]['time'] = recv_time
 
 
 def update_station_status(station_status, tables, verbose=0):
@@ -193,48 +234,37 @@ def update_station_status(station_status, tables, verbose=0):
         recv_time, station, value = point
         if value.isspace():  # SMA sends a ' ' when it goes off source
             value = ''
-        station_status[station]['source'] = value
-        changed.add(station)
+        station_change(station_status, changed, 'source', recv_time, station, value)
 
     for point in tables.get('telescope_observingMode', []):
         recv_time, station, value = point
-        station_status[station]['mode'] = value
-        changed.add(station)
+        station_change(station_status, changed, 'mode', recv_time, station, value)
 
     for point in tables.get('telescope_onSource', []):
         recv_time, station, value = point
-        #source = station_status[station]['source']
-        # value is either str {'True', 'true'} or a bool
-        if onsource(value):
-            v = 'on'
-            # this is trying to be a bit too clever... hard to be sure that time ordering is correct
-            #if recv_time > station_status[station]['time'] and source and source.startswith('was '):
-            #    station_status[station]['source'] = source
-        else:
-            v = 'off'
-            #if recv_time > station_status[station]['time'] and source and not source.startswith('was '):
-            #    station_status[station]['source'] = 'was ' + source
-        station_status[station]['onsource'] = v
-        changed.add(station)
+        value = onsource(value)
+        station_change(station_status, changed, 'onsource', recv_time, station, value)
 
-    for table in recorder_map.keys():
-        for point in tables.get(table, []):
+    for param in recorder_map.keys():
+        for point in tables.get(param, []):
             recv_time, station, value = point
-            recording_set_or_unset(station_status[station], recorder_map[table], value)
-            changed.add(station)
+            old_value = station_status[station]['recording']
+            value = recording_set_or_unset(old_value, param, value)
+            station_change(station_status, changed, 'recording', recv_time, station, value)
+
+    for param, translation in extra_status_map.items():
+        for point in tables.get(param, []):
+            recv_time, station, value = point
+            station_change(station_status, changed, translation, recv_time, station, value)
 
     status_table = []
     for station in changed:
-        #if verbose > 1:
-        if True:
+        if verbose:
             print('station', station, 'has changed')
-            print(json.dumps(station_status[station], sort_keys=True, indent=4))
-        station_status[station]['time'] = recv_time
-        status_table.append([station_status[station][k] for k in ('time', 'station', 'source', 'onsource', 'mode', 'recording')])
+            print(json.dumps(station_status[station], indent=4))  # no sort_keys=True because it's an ordered dict
 
-    if verbose > 1:
-        print('station status')
-        for row in status_table:
-            print(row)
+        cols = [p[0] for p in sqlite.station_status_cols]
+        # these all exist because of init_station_status()
+        status_table.append([station_status[station][p] for p in cols])
 
     return status_table

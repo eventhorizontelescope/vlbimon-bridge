@@ -26,6 +26,19 @@ client_tables = [
     '127_0_0_1',  # just one of these
 ]
 
+station_status_cols = [
+    # also used by transformer.py
+    ['time', 'INTEGER NOT NULL'],
+    ['station', 'TEXT NOT NULL PRIMARY KEY'],
+    ['source', 'TEXT NOT NULL'],
+    ['onsource', 'TEXT NOT NULL'],
+    ['mode', 'TEXT NOT NULL'],
+    ['recording', 'TEXT NOT NULL'],
+    ['tsys', 'REAL'],
+    ['tau225', 'REAL'],
+    ['scan', 'TEXT NOT NULL'],
+]
+
 
 def initdb(cmd):
     verbose = cmd.verbose
@@ -53,12 +66,18 @@ def initdb(cmd):
     bridge_tables = (
         ('events', 'TEXT'),
         ('points', 'INTEGER'),
-        ('lag', 'REAL'),
+        ('totalLag', 'REAL'),
+        ('bridgeLag', 'REAL'),
+        ('forecast_tau225', 'REAL'),
     )
     for param, vlbi_type in bridge_tables:
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
-    cur.execute('CREATE TABLE station_status (time INTEGER NOT NULL, station TEXT NOT NULL PRIMARY KEY, source TEXT NOT NULL, onsource TEXT NOT NULL, mode TEXT NOT NULL, recording TEXT NOT NULL)')
+    cur.execute('CREATE TABLE ts_param_schedule (time INTEGER NOT NULL, stations TEXT NOT NULL, scan TEXT NOT NULL)')
+
+    station_collist = ', '.join([s1+' '+s2 for s1, s2 in station_status_cols])
+
+    cur.execute('CREATE TABLE station_status ('+station_collist+')')
     # sqlite will create sqlite_autoindex_station_status_1 because of the primary key
 
     cur.close()
@@ -137,7 +156,11 @@ def insert_many_status(con, status_table, verbose=0):
         if verbose:
             print('inserting', len(status_table), 'station_status updates', file=sys.stderr)
 
-        cur.executemany('INSERT OR REPLACE INTO station_status VALUES(?, ?, ?, ?, ?, ?)', status_table)
+        for line in status_table:
+            assert len(line) == len(station_status_cols)
+        questions = ', '.join(['?'] * len(station_status_cols))
+
+        cur.executemany('INSERT OR REPLACE INTO station_status VALUES('+questions+')', status_table)
 
         cur.close()
 
