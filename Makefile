@@ -37,4 +37,4 @@ test-bridge.db:
 	python scripts/summarize-sqlite-db.py test-bridge.db
 
 test-bridge: test-bridge.db
-	vlbimon_bridge -v -v bridge --sqlitedb test-bridge.db
+	vlbimon_bridge -v -v --data datatest bridge --sqlitedb test-bridge.db --start 0
