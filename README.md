@@ -201,6 +201,13 @@ For this db file to be used by grafana, it should follow these somewhat tricky r
 * The db file should be owned by group 'grafana' and be group writable
 * If a user is going to run a bridge (see below), they should be a member of group 'grafana'
 
+## Past database migrations
+
+This is an ordered list:
+
+* scripts/fix-bug-azelalt.py
+* scripts/create-remo.py
+
 ## Production bridge
 
 The current production bridge is on the same machine as the ehtcc
