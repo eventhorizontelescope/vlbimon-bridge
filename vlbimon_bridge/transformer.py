@@ -224,7 +224,10 @@ def recording_set_or_unset(old_value, param, value):
 def station_change(station_status, changed, param, recv_time, station, value):
         station_status[station][param] = value
         changed.add(station)
-        station_status[station]['time'] = recv_time
+        old = station_status[station]['time']
+        if recv_time > old:
+            # we don't process the points in time order, don't set the clock backwards
+            station_status[station]['time'] = recv_time
 
 
 def update_station_status(station_status, tables, verbose=0):
