@@ -9,6 +9,10 @@ if len(sys.argv) > 1:
     db = sys.argv[1]
 else:
     db = 'vlbimon.db'
+if len(sys.argv) > 2:
+    only_station = sys.argv[2]
+else:
+    only_station = None
 
 con = sqlite3.connect(db)
 cur = con.cursor()
@@ -32,7 +36,6 @@ for name in names:
         surprised.append(name)
 
 if surprised:
-    # currently firing for ['station_status', 'sqlite_autoindex_station_status_1']
     print('surprised by extra tables, this is not surprising if grafana has altered this db')
     print(surprised)
 
@@ -59,6 +62,8 @@ for ts in timeseries:
     res = cur.execute(distinct_query.format(ts))
     values = res.fetchall()
     stations = set(v[0] for v in values)
+    if only_station:
+        stations = set([only_station])
     for station in stations:
         all_stations.add(station)
         param_stations[param].add(station)
