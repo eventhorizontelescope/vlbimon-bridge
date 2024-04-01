@@ -116,8 +116,8 @@ def transform_events(flat, verbose=0, dedup_events=False):
 
             extras.append([station, 'events', recv_time, station + ' ' + event])
     if verbose > 1:
-        print('events', file=sys.stderr)
-        [print(e, file=sys.stderr) for e in extras]
+        print('events:', file=sys.stderr)
+        [print(' ', e, file=sys.stderr) for e in extras]
     return flat + extras
 
 
@@ -136,8 +136,8 @@ def transform_splitters(flat, verbose=0):
             extras.append([station, expanded[0], recv_time, first])
             extras.append([station, expanded[1], recv_time, second])
     if verbose > 1:
-        print('splits', file=sys.stderr)
-        [print(e, file=sys.stderr) for e in extras]
+        print('splits:', file=sys.stderr)
+        [print(' ', e, file=sys.stderr) for e in extras]
     return flat + extras
 
 
@@ -160,8 +160,8 @@ def init_station_status(con, stations, verbose=0):
         station_status[s] = ss
 
     if verbose > 1:
-        print('init station status')
-        print(json.dumps(station_status, sort_keys=True, indent=4))
+        print('init station status:')
+        print(' ', json.dumps(station_status, sort_keys=True, indent=4))
 
     rows = sqlite.get_station_status(con)
     changed = set()
@@ -184,7 +184,7 @@ def init_station_status(con, stations, verbose=0):
         for k, v in station_status.items():
             if k not in changed:
                 continue
-            print(json.dumps(station_status[k], sort_keys=True))
+            print(' ', json.dumps(station_status[k], sort_keys=True))
 
     for station in station_status:
         if verbose > 1:

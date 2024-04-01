@@ -67,7 +67,7 @@ def bridge_cli(cmd):
         server = 'vlbimon1.science.ru.nl'
     else:
         server = 'vlbimon2.science.ru.nl'
-    auth = client.get_auth(server, secrets=secrets)
+    auth = client.get_auth(server, secrets=secrets, verbose=verbose)
 
     os.makedirs(datadir, exist_ok=True)
     metadata_file = datadir + '/' + server + '.json'
@@ -87,7 +87,7 @@ def bridge_cli(cmd):
         if verbose:
             print('got a valid sessionid', sessionid, 'and last snap', last_snap)
     if sessionid is None:
-        sessionid = client.get_sessionid(server, auth=auth)
+        sessionid = client.get_sessionid(server, auth=auth, verbose=verbose)
         # last_snap already set
     if cmd.start is not None:  # overrides .json last_snap
         if cmd.start == 0:
@@ -117,7 +117,7 @@ def bridge_cli(cmd):
             now = time.time()
             next_deadline = now + cmd.dt
 
-            sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth)
+            sessionid, last_snap, snap = client.get_snapshot(server, last_snap=last_snap, sessionid=sessionid, auth=auth, verbose=verbose)
             bridge_lag = time.time() - now
             flat = utils.flatten(snap, bridge_lag=bridge_lag, add_points=True, verbose=verbose)
             flat = transformer.transform(flat, verbose=verbose, dedup_events=True)

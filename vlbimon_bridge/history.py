@@ -30,11 +30,15 @@ def history(cmd):
     secrets = cmd.secrets
 
     if cmd.one:
+        if verbose:
+            print('using vlbimon1')
         server = 'https://vlbimon1.science.ru.nl/'
-        auth = client.get_auth(secrets=secrets)
+        auth = client.get_auth(secrets=secrets, verbose=verbose)
     else:
+        if verbose:
+            print('using vlbimon2')
         server = 'https://vlbimon2.science.ru.nl/'
-        auth = client.get_auth('vlbimon2.science.ru.nl', secrets=secrets)
+        auth = client.get_auth('vlbimon2.science.ru.nl', secrets=secrets, verbose=verbose)
 
     stations, parameters = utils.read_masterlist()
     utils.comment_on_masterlist(stations, parameters, verbose=verbose)
@@ -69,7 +73,7 @@ def history(cmd):
                 ts = tee
                 tee += cadence
                 te = min(cmd.end, ts + cadence)
-                resp_json = client.get_history(server, param, station, ts, te, auth=auth)
+                resp_json = client.get_history(server, param, station, ts, te, auth=auth, verbose=verbose)
 
                 # None = error, nothing learned
                 # {} = valid but no data for interval. update metadata and last_tried

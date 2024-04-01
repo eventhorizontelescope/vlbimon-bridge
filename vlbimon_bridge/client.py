@@ -15,21 +15,25 @@ vlbimon1.science.ru.nl:
 
 
 def get_auth(server='vlbimon1.science.ru.nl',
-             secrets='~/.vlbimonitor-secrets.yaml'):
+             secrets='~/.vlbimonitor-secrets.yaml', verbose=0):
     secrets = os.path.expandvars(os.path.expanduser(secrets))
     with open(secrets) as f:
         conf = yaml.safe_load(f)
     # expect a dict of hostnames
     conf = conf.get(server, {})
     if 'basicauth' in conf:
+        if verbose:
+            print('using basicauth and server', server)
         return tuple(conf['basicauth'])  # expecting ('username', 'password')
     if 'digestauth' in conf:
+        if verbose:
+            print('using digestauth and server', server)
         from requests.auth import HTTPDigestAuth
         return HTTPDigestAuth(*conf['digestauth'])  # also ('username', 'password')
     raise ValueError('failed to find auth information in {} for server {}, please check the format'.format(secrets, server))
 
 
-def get_history(server, datafields, observatories, start_timestamp, end_timestamp, auth=None):
+def get_history(server, datafields, observatories, start_timestamp, end_timestamp, auth=None, verbose=0):
     query = '/data/history'
     if not server.startswith('https://'):
         server = 'https://' + server
@@ -39,10 +43,12 @@ def get_history(server, datafields, observatories, start_timestamp, end_timestam
         'startTime': int(start_timestamp),
         'endTime': int(end_timestamp),
     }
+    if verbose > 1:
+        print('requesting history, server:', server, 'param:', params)
     resp = requests.get(server+query, params=params, auth=auth)
     if resp.status_code != 200:
         print('whoops! field {} returned {} and:\n'.format(datafields, resp.status_code))
-        print(resp.text)
+        print('  text is', resp.text)
         return None
 
     # what users expect:
@@ -98,17 +104,21 @@ def restore_session(server, sessionid, auth):
     return sessionid
 
 
-def get_sessionid(server, sessionid=None, auth=None):
+def get_sessionid(server, sessionid=None, auth=None, verbose=0):
     try:
+        if verbose:
+            print('attempting to restore session')
         return restore_session(server, sessionid, auth)
     except FileNotFoundError:
+        if verbose:
+            print('creating a new session after restore did not work')
         return create_session(server, auth)
     except Exception as e:
         print('restore_session got', repr(e), ', creating a new session')
         return create_session(server, auth)
 
 
-def get_snapshot(server, last_snap=None, sessionid=None, auth=None):
+def get_snapshot(server, last_snap=None, sessionid=None, auth=None, verbose=0):
     query = '/data/snapshot'
     if not server.startswith('https://'):
         server = 'https://' + server
@@ -119,12 +129,17 @@ def get_snapshot(server, last_snap=None, sessionid=None, auth=None):
         cookies = {}
     cookies['sessionid'] = sessionid
 
+    if verbose > 1:
+            print('getting snapshot from server', server, 'last snapshot was', last_snap)
+
     try:
         r = requests.get(server + query, cookies=cookies)
     except Exception as e:
         print('something bad happened ({}). sleeping for 10s.'.format(repr(e)))
         return sessionid, last_snap, {}
 
+    if verbose > 1:
+        print('got a snapshot, status_code is', r.status_code)
     if r.status_code in (401, 403):
         # example: requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://vlbimon2.science.ru.nl/data/snapshot
         print('fetching a new session id after getting a', r.status_code)

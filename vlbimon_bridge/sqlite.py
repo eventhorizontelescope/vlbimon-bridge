@@ -60,7 +60,8 @@ def initdb(cmd):
 
     for param, vlbi_type in vlbi_types.items():
         param = param.split('.')[0]
-        print(param, vlbi_type)
+        if verbose:
+            print(param, vlbi_type)
         add_timeseries(cur, param, vlbi_type, verbose=verbose)
 
     bridge_tables = (
@@ -99,7 +100,6 @@ def connect(database, *args, wal_size=None, verbose=0, **kwargs):
         for row in cur.execute('PRAGMA journal_mode'):
             assert row[0] == 'wal'
         for row in cur.execute('PRAGMA synchronous'):
-            print(row)
             assert row[0] == 1  # 1=NORMAL, does not persist
         for row in cur.execute('PRAGMA wal_autocheckpoint'):
             assert row[0] == 1000  # the default
