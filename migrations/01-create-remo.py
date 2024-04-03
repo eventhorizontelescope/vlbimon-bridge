@@ -47,9 +47,9 @@ renames = {
 
 new_tables = [
     'bridgeLag',  # ts_param_bridgeLag
-    'forecast_tau225',
-    'windSpeed',
-    'windGust',
+    'forecast_tau225',  # this prefix is new
+    'windSpeed',  # confusing because of weather_windSpeed already existing
+    'windGust',  # not confusing because there is no weather_windGust
 ]
 
 
