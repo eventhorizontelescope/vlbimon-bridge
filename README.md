@@ -203,10 +203,7 @@ For this db file to be used by grafana, it should follow these somewhat tricky r
 
 ## Past database migrations
 
-This is an ordered list:
-
-* scripts/fix-bug-azelalt.py
-* scripts/create-remo.py
+The directory migrations/ contains an ordered list of past database migrations.
 
 ## Production bridge
 
