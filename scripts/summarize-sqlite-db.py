@@ -28,9 +28,9 @@ for name in names:
         timeseries.append(name)
     elif name.startswith('idx_'):
         continue
-    elif name == 'station_status':
+    elif name == 'bridge_stationStatus':
         continue
-    elif name == 'sqlite_autoindex_station_status_1':
+    elif name == 'sqlite_autoindex_bridge_stationStatus_1':
         continue
     else:
         surprised.append(name)

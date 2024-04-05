@@ -1,6 +1,19 @@
 import sqlite3
 
 
+def parse_argv(argv):
+    if len(argv) == 3:
+        verb = argv[1]
+        db = argv[2]
+    elif len(argv) == 1:
+        verb = 'check'
+        db = 'vlbimon.db'
+    else:
+        print('usage:', argv[0], '{check,fix} dbname')
+        exit(1)
+    return verb, db
+
+
 def get_tables(db):
     con = sqlite3.connect(db)
     cur = con.cursor()
@@ -24,45 +37,44 @@ def get_tables(db):
     return names
 
 
-def check_old_new(names, renames, new_tables):
-    # we don't check column renames
+def check_old_new(names, table_renames, new_tables, prefix='ts_param_'):
+    # we don't check column renames, just table renames and new tables
 
-    old_count = sum(['ts_param_'+n in names for n in renames.keys()])
-    if old_count == len(renames):
+    old_count = sum([prefix+n in names for n in table_renames.keys()])
+    if old_count == len(table_renames):
         print('all old tables are present')
     elif old_count == 0:
         print('no old tables are present')
     else:
         print('some old tables are missing?')
-        for n in renames.keys():
+        for n in table_renames.keys():
             if n not in names:
                 print(' ', n)
         raise ValueError('not all old tables are present')
 
-    newts = [str(r) for r in renames.values()]
+    newts = [str(r) for r in table_renames.values()]
     newts.extend(new_tables)
-    newts.append('schedule')
-    new_count = sum(['ts_param_'+n in names for n in newts])
+    new_count = sum([prefix+n in names for n in newts])
     if new_count == len(newts):
         print('all new tables are present')
     elif new_count == 0:
         print('no new tables are present')
     else:
-        print('some new tables are missing?')
+        print('some new tables are present?')
         for n in newts:
-            if 'ts_param_'+n not in names:
+            if prefix+n in names:
                 print(' ', n)
-        raise ValueError('not all new tables are present')
+        raise ValueError('some new tables are present')
 
     return old_count, new_count
 
 
-def do_table_renames(db, renames):
+def do_table_renames(db, renames, prefix='ts_param_'):
     con = sqlite3.connect(db)
     cur = con.cursor()
     for old, new in renames.items():
-        old = 'ts_param_'+old
-        new = 'ts_param_'+new
+        old = prefix+old
+        new = prefix+new
 
         cur.execute('ALTER TABLE {} RENAME TO {}'.format(old, new))
 
@@ -78,11 +90,11 @@ def do_table_renames(db, renames):
     con.close()
 
 
-def do_new_tables(db, new_tables):
+def do_new_tables(db, new_tables, prefix='ts_param_'):
     con = sqlite3.connect(db)
     cur = con.cursor()
     for new in new_tables:
-        new = 'ts_param_'+new
+        new = prefix+new
         cur.execute('CREATE TABLE {} (time INTEGER NOT NULL, station TEXT NOT NULL, value {})'.format(new, 'REAL'))
         cur.execute('CREATE INDEX idx_{}_time ON {}(time)'.format(new, new))
         cur.execute('CREATE INDEX idx_{}_station ON {}(station)'.format(new, new))

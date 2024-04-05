@@ -141,11 +141,11 @@ def transform_splitters(flat, verbose=0):
     return flat + extras
 
 
-def init_station_status(con, stations, verbose=0):
+def init_stationStatus(con, stations, verbose=0):
     '''Initialize the station status to a valid state, and then try to read it out of the database.'''
-    station_status = {}
+    stationStatus = {}
 
-    # the order here must match the order in sqlite.station_status_cols
+    # the order here must match the order in sqlite.stationStatus_cols
     for s in stations:
         ss = {}
         for key in ('source', 'mode', 'onsource'):
@@ -157,17 +157,17 @@ def init_station_status(con, stations, verbose=0):
         ss['tau225'] = 0.  # should this be NaN?
         ss['scan'] = ''
 
-        station_status[s] = ss
+        stationStatus[s] = ss
 
     if verbose > 1:
         print('init station status:')
-        print(' ', json.dumps(station_status, sort_keys=True, indent=4))
+        print(' ', json.dumps(stationStatus, sort_keys=True, indent=4))
 
-    rows = sqlite.get_station_status(con)
+    rows = sqlite.get_stationStatus(con)
     changed = set()
     for r in rows:
         station = r['station']
-        if station not in station_status:
+        if station not in stationStatus:
             print('ignoring readback of unknown station', station)
             continue
         changed.add(station)
@@ -177,22 +177,22 @@ def init_station_status(con, stations, verbose=0):
             if k == 'recording':
                 if len(r[k]) != 4:
                     continue
-            station_status[station][k] = r[k]
+            stationStatus[station][k] = r[k]
 
     if verbose > 1:
         print('restored station status')
-        for k, v in station_status.items():
+        for k, v in stationStatus.items():
             if k not in changed:
                 continue
-            print(' ', json.dumps(station_status[k], sort_keys=True))
+            print(' ', json.dumps(stationStatus[k], sort_keys=True))
 
-    for station in station_status:
+    for station in stationStatus:
         if verbose > 1:
-            print('station_status', len(station_status[station]))
-            print('station_status_cols', len(sqlite.station_status_cols))
-        assert len(station_status[station]) == len(sqlite.station_status_cols)
+            print('stationStatus', len(stationStatus[station]))
+            print('stationStatus_cols', len(sqlite.stationStatus_cols))
+        assert len(stationStatus[station]) == len(sqlite.stationStatus_cols)
 
-    return station_status
+    return stationStatus
 
 
 recorder_map = {
@@ -221,53 +221,53 @@ def recording_set_or_unset(old_value, param, value):
     return by.decode('utf8')
 
 
-def station_change(station_status, changed, param, recv_time, station, value):
-        station_status[station][param] = value
-        changed.add(station)
-        old = station_status[station]['time']
-        if recv_time > old:
-            # we don't process the points in time order, don't set the clock backwards
-            station_status[station]['time'] = recv_time
+def station_change(stationStatus, changed, param, recv_time, station, value):
+    stationStatus[station][param] = value
+    changed.add(station)
+    old = stationStatus[station]['time']
+    if recv_time > old:
+        # we don't process the points in time order, don't set the clock backwards
+        stationStatus[station]['time'] = recv_time
 
 
-def update_station_status(station_status, tables, verbose=0):
+def update_stationStatus(stationStatus, tables, verbose=0):
     changed = set()
 
     for point in tables.get('telescope_sourceName', []):
         recv_time, station, value = point
         if value.isspace():  # SMA sends a ' ' when it goes off source
             value = ''
-        station_change(station_status, changed, 'source', recv_time, station, value)
+        station_change(stationStatus, changed, 'source', recv_time, station, value)
 
     for point in tables.get('telescope_observingMode', []):
         recv_time, station, value = point
-        station_change(station_status, changed, 'mode', recv_time, station, value)
+        station_change(stationStatus, changed, 'mode', recv_time, station, value)
 
     for point in tables.get('telescope_onSource', []):
         recv_time, station, value = point
         value = onsource(value)
-        station_change(station_status, changed, 'onsource', recv_time, station, value)
+        station_change(stationStatus, changed, 'onsource', recv_time, station, value)
 
     for param in recorder_map.keys():
         for point in tables.get(param, []):
             recv_time, station, value = point
-            old_value = station_status[station]['recording']
+            old_value = stationStatus[station]['recording']
             value = recording_set_or_unset(old_value, param, value)
-            station_change(station_status, changed, 'recording', recv_time, station, value)
+            station_change(stationStatus, changed, 'recording', recv_time, station, value)
 
     for param, translation in extra_status_map.items():
         for point in tables.get(param, []):
             recv_time, station, value = point
-            station_change(station_status, changed, translation, recv_time, station, value)
+            station_change(stationStatus, changed, translation, recv_time, station, value)
 
     status_table = []
     for station in changed:
         if verbose:
             print('station', station, 'has changed')
-            print(json.dumps(station_status[station], indent=4))  # no sort_keys=True because it's an ordered dict
+            print(json.dumps(stationStatus[station], indent=4))  # no sort_keys=True because it's an ordered dict
 
-        cols = [p[0] for p in sqlite.station_status_cols]
-        # these all exist because of init_station_status()
-        status_table.append([station_status[station][p] for p in cols])
+        cols = [p[0] for p in sqlite.stationStatus_cols]
+        # these all exist because of init_stationStatus()
+        status_table.append([stationStatus[station][p] for p in cols])
 
     return status_table

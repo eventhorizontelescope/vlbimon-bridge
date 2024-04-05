@@ -26,7 +26,7 @@ client_tables = [
     '127_0_0_1',  # just one of these
 ]
 
-station_status_cols = [
+stationStatus_cols = [
     # also used by transformer.py
     ['time', 'INTEGER NOT NULL'],
     ['station', 'TEXT NOT NULL PRIMARY KEY'],
@@ -69,17 +69,19 @@ def initdb(cmd):
         ('points', 'INTEGER'),
         ('totalLag', 'REAL'),
         ('bridgeLag', 'REAL'),
-        ('forecast_tau225', 'REAL'),
+        ('forecastTau225', 'REAL'),
+        ('avgWindSpeed', 'REAL'),
+        ('windGust', 'REAL'),
     )
     for param, vlbi_type in bridge_tables:
-        add_timeseries(cur, param, vlbi_type, verbose=verbose)
+        add_timeseries(cur, 'bridge_'+param, vlbi_type, verbose=verbose)
 
     cur.execute('CREATE TABLE ts_param_schedule (time INTEGER NOT NULL, stations TEXT NOT NULL, scan TEXT NOT NULL)')
 
-    station_collist = ', '.join([s1+' '+s2 for s1, s2 in station_status_cols])
+    station_collist = ', '.join([s1+' '+s2 for s1, s2 in stationStatus_cols])
 
-    cur.execute('CREATE TABLE station_status ('+station_collist+')')
-    # sqlite will create sqlite_autoindex_station_status_1 because of the primary key
+    cur.execute('CREATE TABLE bridge_stationStatus ('+station_collist+')')
+    # sqlite will create sqlite_autoindex_bridge_stationStatus_1 because of the primary key
 
     cur.close()
     con.commit()
@@ -154,21 +156,21 @@ def insert_many_status(con, status_table, verbose=0):
         cur = con.cursor()
 
         if verbose:
-            print('inserting', len(status_table), 'station_status updates', file=sys.stderr)
+            print('inserting', len(status_table), 'stationStatus updates', file=sys.stderr)
 
         for line in status_table:
-            assert len(line) == len(station_status_cols)
-        questions = ', '.join(['?'] * len(station_status_cols))
+            assert len(line) == len(stationStatus_cols)
+        questions = ', '.join(['?'] * len(stationStatus_cols))
 
-        cur.executemany('INSERT OR REPLACE INTO station_status VALUES('+questions+')', status_table)
+        cur.executemany('INSERT OR REPLACE INTO bridge_stationStatus VALUES('+questions+')', status_table)
 
         cur.close()
 
 
-def get_station_status(con, verbose=0):
+def get_stationStatus(con, verbose=0):
     cur = con.cursor()
     cur.row_factory = sqlite3.Row
-    cur.execute('SELECT * FROM station_status')
+    cur.execute('SELECT * FROM bridge_stationStatus')
     rows = cur.fetchall()
     cur.close()
     return rows

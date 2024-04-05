@@ -187,9 +187,9 @@ Several utilities are in the scripts/ directory:
 
 ## Monitoring the bridge itself
 
-As the bridge runs it creates two timeseries, one for "lag" (how many seconds the
-fetch of vlbimon data took) and one for how many data points were in each update,
-per station and the sum over all stations.
+* ts\_param\_bridge_totalLag -- the lag between the most recent timestamped point and now
+* ts\_param\_bridge_bridgeLag -- the wall-clock time it took to get a snapshot from vlbimon
+* ts\_param\_bridge_points -- the number of points transferred in each 10 second window
 
 ## Making a sqlite3 db file visible in Grafana
 

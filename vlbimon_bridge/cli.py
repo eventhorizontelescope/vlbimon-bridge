@@ -104,7 +104,7 @@ def bridge_cli(cmd):
     next_deadline = 0
     server = 'https://' + server
     con = sqlite.connect(cmd.sqlitedb, wal_size=wal_size, verbose=verbose)
-    station_status = transformer.init_station_status(con, stations, verbose=verbose)
+    stationStatus = transformer.init_stationStatus(con, stations, verbose=verbose)
 
     try:
         while True:
@@ -122,7 +122,7 @@ def bridge_cli(cmd):
             flat = utils.flatten(snap, bridge_lag=bridge_lag, add_points=True, verbose=verbose)
             flat = transformer.transform(flat, verbose=verbose, dedup_events=True)
             tables = utils.flat_to_tables(flat)
-            status_table = transformer.update_station_status(station_status, tables, verbose=verbose)
+            status_table = transformer.update_stationStatus(stationStatus, tables, verbose=verbose)
 
             sqlite.insert_many_ts(con, tables, verbose=verbose)
             sqlite.insert_many_status(con, status_table, verbose=verbose)

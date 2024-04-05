@@ -3,29 +3,19 @@ This script does the addition of tables to make Remo's status page
 '''
 
 import sys
-import os.path
-import sqlite3
 
 import vlbimon_bridge.utils
 import vlbimon_bridge.migrate as migrate
 
 
-if len(sys.argv) == 3:
-    verb = sys.argv[1]
-    db = sys.argv[2]
-elif len(sys.argv) == 1:
-    verb = 'check'
-    db = 'vlbimon.db'
-else:
-    print('usage:', sys.argv[0], '{check,fix} dbname')
-    exit(1)
+verb, db = migrate.parse_argv(sys.argv)
 
 # checks file and directory permissions
 vlbimon_bridge.utils.checkout_db(db, mode='r')
 
 names = migrate.get_tables(db)
 
-renames = {
+table_renames = {
     'lag': 'totalLag',
 }
 
@@ -36,11 +26,11 @@ new_tables = [
     'windGust',  # not confusing because there is no weather_windGust
 ]
 
-old_count, new_count = migrate.check_old_new(names, renames, new_tables)
+old_count, new_count = migrate.check_old_new(names, table_renames, new_tables)
 
 if verb == 'check':
     exit(0)
-if old_count != len(renames) or new_count > 0:
+if old_count != len(table_renames) or new_count > 0:
     print('not changing anything')
     exit(1)
 
@@ -48,7 +38,7 @@ if old_count != len(renames) or new_count > 0:
 print('fixing')
 vlbimon_bridge.utils.checkout_db(db, mode='w')
 
-migrate.do_table_renames(db, renames)
+migrate.do_table_renames(db, table_renames)
 migrate.do_new_timeseries(db, new_tables)
 
 # these things are not part of the check
