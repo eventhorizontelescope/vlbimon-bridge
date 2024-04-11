@@ -143,7 +143,13 @@ def insert_many_ts(con, tables, verbose=0):
             # sqlite3.OperationalError: no such table: ts_param_127_0_0_1
             if verbose:
                 print('skipping', repr(e), data, file=sys.stderr)
-            pass
+        except OverflowError as e:
+            # OverflowError: Python int too large to convert to SQLite INTEGER
+            if verbose:
+                print('skipping', repr(e), data, file=sys.stderr)
+        except Exception as e:
+            if verbose:
+                print('skipping', repr(e), data, file=sys.stderr)
 
     cur.close()
 
