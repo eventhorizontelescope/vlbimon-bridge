@@ -13,7 +13,7 @@ table_renames = {
     'windSpeed': 'bridge_avgWindSpeed',
 }
 new_tables = []
-another_rename = {'station_status': 'bridge_stationStatus'}  # no prefix
+another_rename = {'station_status': 'bridge_stationStatus'}  # no prefix, unusual index name
 
 verb, db = migrate.parse_argv(sys.argv)
 vlbimon_bridge.utils.checkout_db(db, mode='r')
@@ -30,7 +30,7 @@ print('fixing')
 vlbimon_bridge.utils.checkout_db(db, mode='w')
 
 migrate.do_table_renames(db, table_renames)
-migrate.do_new_timeseries(db, new_tables)
+migrate.do_new_tables(db, new_tables)
 migrate.do_table_renames(db, another_rename, prefix='')
 
 print('done')
