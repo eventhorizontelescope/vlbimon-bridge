@@ -5,6 +5,8 @@ import datetime
 import sqlite3
 
 
+VERBOSE = 1
+
 if len(sys.argv) > 1:
     db = sys.argv[1]
 else:
@@ -29,8 +31,12 @@ for name in names:
     elif name.startswith('idx_'):
         continue
     elif name == 'bridge_stationStatus':
+        if VERBOSE:
+            print('skipping', name)
         continue
     elif name == 'sqlite_autoindex_bridge_stationStatus_1':
+        if VERBOSE:
+            print('skipping', name)
         continue
     else:
         surprised.append(name)
