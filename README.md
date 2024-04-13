@@ -51,43 +51,52 @@ vlbimon2.science.ru.nl:
 ## Usage
 
 ```
-$ vlbimon_bridge -h
-usage: vlbimon_bridge [-h] [--verbose] [-1] [--start START] [--datadir DATADIR] {history,bridge} ...
+usage: vlbimon_bridge [-h] [--verbose] [-1] [--stations STATIONS] [--datadir DATADIR] [--secrets SECRETS] {history,initdb,bridge} ...
 
 vlbimon_bridge command line utilities
 
 positional arguments:
-  {history,bridge}
-    history
-    bridge
+  {history,initdb,bridge}
+    history             download historical vlbimon data to csv files
+    initdb              initialize a sqlite database
+    bridge              bridge data from vlbimon into a sqlite database
 
 options:
-  -h, --help         show this help message and exit
-  --verbose, -v      be verbose
-  -1                 use vlbimon1 server (default is vlbimon2)
-  --datadir DATADIR  directory to write output in (default ./data)
+  -h, --help            show this help message and exit
+  --verbose, -v         be verbose
+  -1                    use vlbimon1 (default is vlbimon2)
+  --stations STATIONS   stations to process (default all)
+  --datadir DATADIR     directory to write output in (default ./data)
+  --secrets SECRETS     file containing auth secrets, default ~/.vlbimonitor-secrets.yaml
+
+$ vlbimon_bridge initdb -h
+usage: vlbimon_bridge initdb [-h] [--sqlitedb SQLITEDB]
+
+options:
+  -h, --help           show this help message and exit
+  --sqlitedb SQLITEDB  name of the output database; elsewise, print to stdout
 
 $ vlbimon_bridge history -h
-usage: vlbimon_bridge history [-h] [--public] [--private] [--all] [--end END] [--param PARAM] [--stations STATIONS]
+usage: vlbimon_bridge history [-h] [--start START] [--end END] [--all] [--public] [--private] [--param PARAM]
 
 options:
-  -h, --help           show this help message and exit
-  --public             process public parameters (year round)
-  --private            process private parameters (during EHT obs)
-  --all                process all parameters
-  --start START        start time (unixtime integer)
-  --end END            end time (unixtime integer)
-  --param PARAM        param to process (default all)
-  --stations STATIONS  stations to process (default all)
+  -h, --help     show this help message and exit
+  --start START  start time (unixtime integer)
+  --end END      end time (unixtime integer)
+  --all          process all public and private parameters
+  --public       process public parameters (year round)
+  --private      process private parameters (during EHT obs)
+  --param PARAM  param to process (default all)
 
 $ vlbimon_bridge bridge -h
-usage: vlbimon_bridge bridge [-h]
+usage: vlbimon_bridge bridge [-h] [--start START] [--dt DT] [--sqlitedb SQLITEDB] [--wal WAL]
 
 options:
   -h, --help           show this help message and exit
-  --start START        start time (unixtime integer) (0=now) (default data/server.json)
+  --start START        start time (unixtime integer) (0=now) (default reads data/server.json last_snap)
   --dt DT              time between calls, seconds, default=10
   --sqlitedb SQLITEDB  name of the output database; elsewise, print to stdout
+  --wal WAL            size of the write ahead log, default 1000 4k pages. 0 to disable.
 ```
 
 ## Download a time range from vlbimon to csv
@@ -204,6 +213,51 @@ For this db file to be used by grafana, it should follow these somewhat tricky r
 ## Past database migrations
 
 The directory migrations/ contains an ordered list of past database migrations.
+
+This example assumes that the migration script is migrations/99-foo.py:
+
+* prepare old schema test database for future testing
+* * `vlbimon_bridge initdb --sq old.db`
+* * cp old.db old.db.save  # just in case
+
+* write code
+* * move to a testing virtualenv and a git branch
+* * write the migration code, looking at previous examples and using the helper functions
+* * update sqlite.py to create the new tables/columns
+* * update scripts/summarize-sqlite-db.py for the new tables/columns
+
+* deploy code to the test venv
+* * `pip install .` into the test venv
+
+* test code against an old test db
+* * python migrations/99-foo.py check old.db
+* * python migrations/99-foo.py fix old.db
+* * run the bridge for a while
+
+* test code against a new test db
+* * `make test-bridge.db`  # tests initdb and sqlite and summarize-sqlite-db
+* * check (should say no old seen)
+* * fix (should refuse to do anything)
+* * `make test-bridge`  # tests bridge operation
+
+* test code against a backup of live.db
+* * `python scripts/sqlite-backup.py /var/lib/grafana/live.db live.db`
+* * check
+* * fix
+* * bridge
+
+* commit working code
+* * someday we'll have a proper CI script but not yet
+* * merge (probably a squash merge)
+
+* deploy
+* * switch to the production venv
+* * ask the production instance to exit by touching `data/PLEASE-EXIT`
+* * `tail -f nohup.out` until you see the actual exit (< 10 seconds)
+* * `python scripts/sqlite-backup.py /var/lib/grafana/live.db live.db.pre-migrate`
+* * `pip install .` the new software into the production venv
+* * `nohup vlbimon_bridge -1 bridge --sq /var/lib/grafana/live.db`
+* * update Grafana dashboards that use the old names
 
 ## Production bridge
 
