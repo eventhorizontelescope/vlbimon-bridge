@@ -114,7 +114,7 @@ def transform_events(flat, verbose=0, dedup_events=False):
                 p = param.replace('telescope_', '')
                 event = p + ' is ' + value
 
-            extras.append([station, 'events', recv_time, station + ' ' + event])
+            extras.append([station, 'bridge_events', recv_time, station + ' ' + event])
     if verbose > 1:
         print('events:', file=sys.stderr)
         [print(' ', e, file=sys.stderr) for e in extras]
