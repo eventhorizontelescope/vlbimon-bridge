@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import time
+import datetime
 import os
 import os.path
 import json
@@ -55,6 +56,8 @@ def bridge_cli(cmd):
     secrets = cmd.secrets
     wal_size = cmd.wal
     exit_file = datadir + '/PLEASE-EXIT'
+
+    print('bridge starting', datetime.datetime.now(datetime.timezone.utc).isoformat())
 
     if not os.path.isfile(cmd.sqlitedb):
         # error out early if the db doesn't exist
