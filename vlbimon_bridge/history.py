@@ -29,16 +29,7 @@ def history(cmd):
     datadir = cmd.datadir.rstrip('/')
     secrets = cmd.secrets
 
-    if cmd.one:
-        if verbose:
-            print('using vlbimon1')
-        server = 'https://vlbimon1.science.ru.nl/'
-        auth = client.get_auth(secrets=secrets, verbose=verbose)
-    else:
-        if verbose:
-            print('using vlbimon2')
-        server = 'https://vlbimon2.science.ru.nl/'
-        auth = client.get_auth('vlbimon2.science.ru.nl', secrets=secrets, verbose=verbose)
+    server, auth = client.get_server(cmd.two, secrets=secrets, verbose=verbose)
 
     stations, parameters = utils.read_masterlist()
     utils.comment_on_masterlist(stations, parameters, verbose=verbose)

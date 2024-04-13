@@ -14,8 +14,30 @@ vlbimon1.science.ru.nl:
 '''
 
 
-def get_auth(server='vlbimon1.science.ru.nl',
-             secrets='~/.vlbimonitor-secrets.yaml', verbose=0):
+def get_server(two, secrets='~/.vlbimonitor-secrets.yaml', verbose=0):
+    if two:
+        if verbose:
+            print('using vlbimon2 -- no SPT')
+        server = 'vlbimon2.science.ru.nl'
+    else:
+        if verbose:
+            print('using vlbimon1')
+        server = 'vlbimon1.science.ru.nl'
+    return expand_server(server), get_auth(server, secrets=secrets, verbose=verbose)
+
+
+def expand_server(server):
+    if server.startswith('http://'):
+        server = server.replace('http://', '', 1)
+    if not server.startswith('https://'):
+        server = 'https://' + server
+    server = server.rstrip('/')
+    if server.count('/') != 2:
+        raise ValueError('invalid server: '+server)
+    return server
+
+
+def get_auth(server, secrets='~/.vlbimonitor-secrets.yaml', verbose=0):
     secrets = os.path.expandvars(os.path.expanduser(secrets))
     with open(secrets) as f:
         conf = yaml.safe_load(f)
@@ -35,8 +57,7 @@ def get_auth(server='vlbimon1.science.ru.nl',
 
 def get_history(server, datafields, observatories, start_timestamp, end_timestamp, auth=None, verbose=0):
     query = '/data/history'
-    if not server.startswith('https://'):
-        server = 'https://' + server
+
     params = {
         'observatory': observatories,
         'field': datafields,
@@ -45,7 +66,7 @@ def get_history(server, datafields, observatories, start_timestamp, end_timestam
     }
     if verbose > 1:
         print('requesting history, server:', server, 'param:', params)
-    resp = requests.get(server+query, params=params, auth=auth)
+    resp = requests.get(server + query, params=params, auth=auth)
     if resp.status_code != 200:
         print('whoops! field {} returned {} and:\n'.format(datafields, resp.status_code))
         print('  text is', resp.text)
@@ -67,11 +88,10 @@ def get_history(server, datafields, observatories, start_timestamp, end_timestam
 
 
 def create_session(server, auth):
-    if not server.startswith('https://'):
-        server = 'https://' + server
+    query = '/session'
     while True:
         try:
-            r = requests.post(server + '/session', auth=auth)
+            r = requests.post(server + query, auth=auth)
             r.raise_for_status()
         except Exception as e:
             print('saw exception', repr(e), 'looping')
@@ -93,9 +113,9 @@ def create_session(server, auth):
 def restore_session(server, sessionid, auth):
     if sessionid is None:
         raise FileNotFoundError('no sessionid')
-    if not server.startswith('https://'):
-        server = 'https://' + server
-    r = requests.patch(server + '/session/' + sessionid, auth=auth)
+    query = '/session/' + sessionid
+
+    r = requests.patch(server + query, auth=auth)
     if r.status_code == 404:
         raise FileNotFoundError('sessionid has expired')
     if not r.ok:
@@ -120,8 +140,6 @@ def get_sessionid(server, sessionid=None, auth=None, verbose=0):
 
 def get_snapshot(server, last_snap=None, sessionid=None, auth=None, verbose=0):
     query = '/data/snapshot'
-    if not server.startswith('https://'):
-        server = 'https://' + server
 
     if last_snap is not None:
         cookies = {'snap_recvTime': str(last_snap)}

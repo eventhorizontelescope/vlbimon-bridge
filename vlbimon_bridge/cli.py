@@ -16,7 +16,8 @@ def main(args=None):
     parser = ArgumentParser(description='vlbimon_bridge command line utilities')
 
     parser.add_argument('--verbose', '-v', action='count', default=0, help='be verbose')
-    parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default is vlbimon2)')
+    parser.add_argument('-1', dest='one', action='store_true', help='use vlbimon1 (default)')
+    parser.add_argument('-2', dest='two', action='store_true', help='use vlbimon2 (default is vlbimon1)')
     parser.add_argument('--stations', action='append', help='stations to process (default all)')
     parser.add_argument('--datadir', action='store', default='data', help='directory to write output in (default ./data)')
     parser.add_argument('--secrets', action='store', default='~/.vlbimonitor-secrets.yaml', help='file containing auth secrets, default ~/.vlbimonitor-secrets.yaml')
@@ -63,14 +64,11 @@ def bridge_cli(cmd):
     stations = transformer.init(verbose=verbose)
     stations = cmd.stations or stations
 
-    if cmd.one:
-        server = 'vlbimon1.science.ru.nl'
-    else:
-        server = 'vlbimon2.science.ru.nl'
-    auth = client.get_auth(server, secrets=secrets, verbose=verbose)
+    server, auth = client.get_server(cmd.two, secrets=secrets, verbose=verbose)
 
     os.makedirs(datadir, exist_ok=True)
-    metadata_file = datadir + '/' + server + '.json'
+    clean_server = server.replace('https://', '', 1).rstrip('/')
+    metadata_file = datadir + '/' + clean_server + '.json'
     sessionid = None
     last_snap = int(time.time())
     if os.path.isfile(metadata_file):
@@ -102,7 +100,6 @@ def bridge_cli(cmd):
         print('fetching data starting', delta, 'seconds ago')
 
     next_deadline = 0
-    server = 'https://' + server
     con = sqlite.connect(cmd.sqlitedb, wal_size=wal_size, verbose=verbose)
     stationStatus = transformer.init_stationStatus(con, stations, verbose=verbose)
 
