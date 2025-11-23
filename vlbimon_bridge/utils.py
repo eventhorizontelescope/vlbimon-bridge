@@ -1,4 +1,4 @@
-import os
+import getpass
 import os.path
 import sys
 import grp
@@ -166,7 +166,7 @@ def setup_groups(verbose=0):
         print('umask was not already 002, changed it', file=sys.stderr)
 
     grafana = grp.getgrnam('grafana')
-    username = os.getlogin()
+    username = getpass.getuser()
     if username not in grafana.gr_mem:
         print('warning: this user is not a member of the grafana group.', file=sys.stderr)
 
