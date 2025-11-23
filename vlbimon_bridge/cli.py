@@ -57,7 +57,7 @@ def bridge_cli(cmd):
     wal_size = cmd.wal
     exit_file = datadir + '/PLEASE-EXIT'
 
-    print('bridge starting', datetime.datetime.now(datetime.timezone.utc).isoformat())
+    print('bridge starting', datetime.datetime.now(datetime.timezone.utc).isoformat(), flush=True)
 
     if not os.path.isfile(cmd.sqlitedb):
         # error out early if the db doesn't exist
