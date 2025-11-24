@@ -148,11 +148,16 @@ The sqlite3 size of one day of 2022 vlbimon data is 17 megabytes.
 
 ## Real-time "bridge" from vlbimon to our database
 
-The first time, create a database. The above tricky rules need to be followed
-for the group permission of the user and the directory /var/lib/grafana:
+The first time, create a database. Notice the tricky ownership rules
+for both the directory and the database file:
 
 ```
+$ groups # is my user in group grafana?
+$ mkdir /var/lib/grafana
+$ chgrp grafana /var/lib/grafana
+$ chmod g+w /var/lib/grafana
 $ vlbimon_bridge -v initdb --sqlitedb /var/lib/grafana/live.db
+$ chmod g+w /var/lib/grafana/live.db
 ```
 
 Start the bridge, first the debugging-friendly version:
