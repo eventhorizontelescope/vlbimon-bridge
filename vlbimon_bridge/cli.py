@@ -134,6 +134,7 @@ def bridge_cli(cmd):
                 json.dump({'sessionid': sessionid, 'last_snap': last_snap}, f, sort_keys=True)
 
             if os.path.exists(exit_file):
+                sys.stdout.flush()
                 print('exiting on', exit_file, file=sys.stderr)
                 try:
                     os.remove(exit_file)
@@ -141,7 +142,7 @@ def bridge_cli(cmd):
                     pass
                 break
     except KeyboardInterrupt:
-        print('^C seen, gracefully closing database', file=sys.stderr)
-        sys.stderr.flush()
+        sys.stdout.flush()
+        print('^C seen, gracefully closing database', file=sys.stderr, flush=True)
         con.close()
         raise
