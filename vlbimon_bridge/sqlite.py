@@ -168,7 +168,19 @@ def insert_many_status(con, status_table, verbose=0):
             assert len(line) == len(stationStatus_cols)
         questions = ', '.join(['?'] * len(stationStatus_cols))
 
-        cur.executemany('INSERT OR REPLACE INTO bridge_stationStatus VALUES('+questions+')', status_table)
+        try:
+            cur.executemany('INSERT OR REPLACE INTO bridge_stationStatus VALUES('+questions+')', status_table)
+        except sqlite3.OperationalError as e:
+            # never seen here
+            if verbose:
+                print('skipping', repr(e), status_table, file=sys.stderr)
+        except OverflowError as e:
+            # OverflowError: Python int too large to convert to SQLite INTEGER
+            if verbose:
+                print('skipping', repr(e), status_table, file=sys.stderr)
+        except Exception as e:
+            if verbose:
+                print('skipping', repr(e), status_table, file=sys.stderr)
 
         cur.close()
 
