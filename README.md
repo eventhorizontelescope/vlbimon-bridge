@@ -268,3 +268,16 @@ This example assumes that the migration script is migrations/99-foo.py:
 
 The current production bridge is on the same machine as the ehtcc
 grafana instance, owned by Greg.
+
+## Cleaning up the stations table
+
+Right now data points in the far future, or other exceptional values
+can cause the station status table to get messed up for a subset of
+stations, e.g. LMT sent in a date in 2033. You can remove a row by doing:
+
+```
+DELETE FROM bridge_stationStatus WHERE station = 'LMT';
+```
+
+You need to restart the bridge process after doing this: on startup it reads
+the status table, and then keeps a copy in memory.
