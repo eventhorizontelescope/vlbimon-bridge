@@ -48,6 +48,16 @@ vlbimon2.science.ru.nl:
   - Yourpw
 ```
 
+## Production usage
+
+If you're restarting an existing, working bridge:
+
+```
+touch data/PLEASE-EXIT
+tail -f nohup.out
+nohup python /home/astrogreg/venv/vlbimon-bridge/bin/vlbimon_bridge -1 bridge --sq /var/lib/grafana/live.db
+```
+
 ## Usage
 
 ```
