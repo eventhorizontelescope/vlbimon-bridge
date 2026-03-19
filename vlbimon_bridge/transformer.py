@@ -2,6 +2,7 @@ import sys
 import re
 from collections import defaultdict
 import json
+import time
 
 from . import utils
 from . import sqlite
@@ -222,8 +223,14 @@ def recording_set_or_unset(old_value, param, value):
 
 
 def station_change(stationStatus, changed, param, recv_time, station, value):
+    now = time.time()
+    if recv_time < now - 86400 or recv_time > now + 86400:
+        # don't accept early or late points
+        return
+
     stationStatus[station][param] = value
     changed.add(station)
+
     old = stationStatus[station]['time']
     if recv_time > old:
         # we don't process the points in time order, don't set the clock backwards
