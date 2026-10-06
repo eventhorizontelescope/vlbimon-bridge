@@ -288,6 +288,8 @@ stations, e.g. LMT sent in a date in 2033. You can remove a row by doing:
 ```
 DELETE FROM bridge_stationStatus WHERE station = 'LMT';
 ```
+or
+```
+sqlite3 /var/lib/grafana/live.db "DELETE FROM bridge_stationStatus WHERE station = 'LMT';"
+```
 
-You need to restart the bridge process after doing this: on startup it reads
-the status table, and then keeps a copy in memory.
